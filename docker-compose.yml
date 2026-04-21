@@ -1,0 +1,84 @@
+# Docker Compose — AI Gateway Local Development
+#
+# Starts the gateway + Redis + PostgreSQL in a single command.
+# This is the "batteries included" local dev setup.
+#
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose up -d redis pg # Start only Redis + PostgreSQL (run app locally)
+#   docker compose logs -f app    # Watch gateway logs
+#   docker compose down           # Stop all services
+
+services:
+  # --- AI Gateway Application ---
+  app:
+    build: .
+    container_name: ai-gateway
+    ports:
+      - "8100:8100"
+    environment:
+      - CLOUD_PROVIDER=local
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://gateway:gateway@pg:5432/ai_gateway
+      - CACHE_ENABLED=true
+      - RATE_LIMIT_ENABLED=true
+      - COST_TRACKING_ENABLED=true
+    depends_on:
+      redis:
+        condition: service_healthy
+      pg:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # --- Redis (Cache + Rate Limiting) ---
+  redis:
+    image: redis:7-alpine
+    container_name: ai-gateway-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- PostgreSQL (Usage Tracking) ---
+  pg:
+    image: postgres:16-alpine
+    container_name: ai-gateway-pg
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: gateway
+      POSTGRES_DB: ai_gateway
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d ai_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # --- LangFuse (Observability) — Optional ---
+  # Uncomment to enable:
+  # langfuse:
+  #   image: langfuse/langfuse:latest
+  #   container_name: ai-gateway-langfuse
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - DATABASE_URL=postgresql://gateway:gateway@pg:5432/ai_gateway
+  #     - NEXTAUTH_SECRET=langfuse-dev-secret
+  #     - NEXTAUTH_URL=http://localhost:3000
+  #   depends_on:
+  #     pg:
+  #       condition: service_healthy
+
+volumes:
+  redis_data:
+  pg_data:

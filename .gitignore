@@ -1,0 +1,32 @@
+# ai-gateway
+.env
+*.pyc
+__pycache__/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Docker
+pg_data/
+redis_data/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Lab results (per-run, not committed)
+scripts/lab_results/

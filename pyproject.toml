@@ -1,0 +1,78 @@
+[tool.poetry]
+name = "ai-gateway"
+version = "0.1.0"
+description = "Central LLM Proxy — Routes, caches, rate-limits, and tracks costs for all LLM calls across AWS, Azure, and Local providers"
+authors = ["Ketan Sahu <Ketan.Sahu@odido.nl>"]
+readme = "README.md"
+license = "MIT"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+# --- Web Framework ---
+fastapi = "^0.115.0"
+uvicorn = { version = "^0.32.0", extras = ["standard"] }
+python-multipart = "^0.0.12"
+
+# --- Pydantic ---
+pydantic = "^2.9.0"
+pydantic-settings = "^2.5.0"
+
+# --- LLM Routing ---
+litellm = "^1.40.0"
+
+# --- Caching & Rate Limiting ---
+redis = { version = "^5.0.0", extras = ["hiredis"] }
+
+# --- Database (Usage Tracking) ---
+sqlalchemy = { version = "^2.0.0", extras = ["asyncio"] }
+asyncpg = "^0.30.0"
+alembic = "^1.14.0"
+
+# --- Observability ---
+langfuse = "^2.40.0"
+opentelemetry-api = "^1.27.0"
+opentelemetry-sdk = "^1.27.0"
+opentelemetry-instrumentation-fastapi = "^0.48b0"
+
+# --- Utilities ---
+loguru = "^0.7.0"
+httpx = "^0.27.0"
+numpy = "^1.26.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+pytest-cov = "^5.0.0"
+ruff = "^0.7.0"
+pre-commit = "^4.0.0"
+fakeredis = "^2.25.0"
+
+[tool.poetry.group.local]
+optional = true
+
+[tool.poetry.group.local.dependencies]
+# Local dev uses Ollama — no extra Python deps needed
+
+[tool.poetry.scripts]
+start = "uvicorn src.main:app --reload --port 8100"
+test = "pytest tests/ -v"
+lint = "ruff check src/ tests/"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,71 @@
+# =============================================================================
+# Deploy to AWS — ECS Fargate
+# =============================================================================
+# Triggered manually or after CI passes on main.
+# Builds Docker image, pushes to ECR, applies Terraform, updates ECS service.
+
+name: Deploy AWS
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - stg
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: ai-gateway
+
+jobs:
+  deploy:
+    name: Deploy to AWS ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: aws-${{ github.event.inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Deploy Terraform
+        working-directory: infra/aws
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+            -var="environment=${{ github.event.inputs.environment }}" \
+            -var="image_tag=${{ github.sha }}"
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster ai-gateway-${{ github.event.inputs.environment }} \
+            --service ai-gateway \
+            --force-new-deployment
