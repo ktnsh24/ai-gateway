@@ -48,6 +48,8 @@ import httpx
 
 DEFAULT_BASE_URL = "http://localhost:8100"
 DEFAULT_TIMEOUT = 120  # seconds (LLM calls can be slow on local)
+SERVER_RECOVERY_MAX_WAIT = 120  # seconds to wait for server to come back after crash
+SERVER_RECOVERY_INTERVAL = 5   # seconds between health check retries
 
 
 # ---------------------------------------------------------------------------
@@ -105,12 +107,42 @@ class LabSuite:
 # ---------------------------------------------------------------------------
 
 
+def _wait_for_server(base_url: str, context: str = "") -> bool:
+    """Wait for the server to become healthy again after a crash."""
+    label = f" (after {context})" if context else ""
+    print(f"\n    🔄 Server unreachable{label} — waiting for recovery...", flush=True)
+    elapsed = 0
+    while elapsed < SERVER_RECOVERY_MAX_WAIT:
+        time.sleep(SERVER_RECOVERY_INTERVAL)
+        elapsed += SERVER_RECOVERY_INTERVAL
+        try:
+            resp = httpx.get(f"{base_url}/health", timeout=5)
+            if resp.status_code == 200:
+                print(f"    ✅ Server recovered after {elapsed}s", flush=True)
+                return True
+        except Exception:
+            pass
+        print(f"    ⏳ Still waiting... ({elapsed}s / {SERVER_RECOVERY_MAX_WAIT}s)", flush=True)
+    print(f"    ❌ Server did not recover within {SERVER_RECOVERY_MAX_WAIT}s", flush=True)
+    return False
+
+
+def _is_connection_error(e: Exception) -> bool:
+    """Check if an exception is a server connection/crash error."""
+    msg = str(e).lower()
+    return any(pattern in msg for pattern in [
+        "connection refused", "server disconnected", "connection reset",
+        "connection closed", "remotedisconnected", "broken pipe", "eof occurred",
+    ])
+
+
 def chat_completion(
     client: httpx.Client,
     message: str,
     *,
     bypass_cache: bool = False,
     request_id: str | None = None,
+    _base_url: str = DEFAULT_BASE_URL,
 ) -> dict[str, Any]:
     """Send a chat completion request."""
     headers: dict[str, str] = {"Content-Type": "application/json"}
@@ -123,49 +155,103 @@ def chat_completion(
     if bypass_cache:
         body["bypass_cache"] = True
 
-    start = time.monotonic()
-    resp = client.post("/v1/chat/completions", json=body, headers=headers)
-    elapsed_ms = (time.monotonic() - start) * 1000
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            start = time.monotonic()
+            resp = client.post("/v1/chat/completions", json=body, headers=headers)
+            elapsed_ms = (time.monotonic() - start) * 1000
 
-    data = resp.json() if resp.status_code == 200 else {}
-    data["_status_code"] = resp.status_code
-    data["_elapsed_ms"] = elapsed_ms
-    data["_request_id"] = resp.headers.get("X-Request-ID", "")
-    data["_latency_header"] = resp.headers.get("X-Gateway-Latency-Ms", "")
-    return data
+            data = resp.json() if resp.status_code == 200 else {}
+            data["_status_code"] = resp.status_code
+            data["_elapsed_ms"] = elapsed_ms
+            data["_request_id"] = resp.headers.get("X-Request-ID", "")
+            data["_latency_header"] = resp.headers.get("X-Gateway-Latency-Ms", "")
+            return data
+        except Exception as e:
+            if _is_connection_error(e) and attempt < max_retries:
+                if _wait_for_server(_base_url, context=f"chat_completion attempt {attempt + 1}"):
+                    continue
+            raise
 
 
-def get_embeddings(client: httpx.Client, texts: str | list[str]) -> dict[str, Any]:
+def get_embeddings(
+    client: httpx.Client,
+    texts: str | list[str],
+    _base_url: str = DEFAULT_BASE_URL,
+) -> dict[str, Any]:
     """Send an embeddings request."""
-    start = time.monotonic()
-    resp = client.post(
-        "/v1/embeddings",
-        json={"input": texts},
-        headers={"Content-Type": "application/json"},
-    )
-    elapsed_ms = (time.monotonic() - start) * 1000
-    data = resp.json() if resp.status_code == 200 else {}
-    data["_status_code"] = resp.status_code
-    data["_elapsed_ms"] = elapsed_ms
-    return data
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            start = time.monotonic()
+            resp = client.post(
+                "/v1/embeddings",
+                json={"input": texts},
+                headers={"Content-Type": "application/json"},
+            )
+            elapsed_ms = (time.monotonic() - start) * 1000
+            data = resp.json() if resp.status_code == 200 else {}
+            data["_status_code"] = resp.status_code
+            data["_elapsed_ms"] = elapsed_ms
+            return data
+        except Exception as e:
+            if _is_connection_error(e) and attempt < max_retries:
+                if _wait_for_server(_base_url, context=f"get_embeddings attempt {attempt + 1}"):
+                    continue
+            raise
 
 
-def get_health(client: httpx.Client) -> dict[str, Any]:
+def get_health(
+    client: httpx.Client,
+    _base_url: str = DEFAULT_BASE_URL,
+) -> dict[str, Any]:
     """Check health endpoint."""
-    resp = client.get("/health")
-    return resp.json() if resp.status_code == 200 else {"status": "unreachable"}
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            resp = client.get("/health")
+            return resp.json() if resp.status_code == 200 else {"status": "unreachable"}
+        except Exception as e:
+            if _is_connection_error(e) and attempt < max_retries:
+                if _wait_for_server(_base_url, context=f"get_health attempt {attempt + 1}"):
+                    continue
+            raise
 
 
-def get_usage(client: httpx.Client, period: str = "today") -> dict[str, Any]:
+def get_usage(
+    client: httpx.Client,
+    period: str = "today",
+    _base_url: str = DEFAULT_BASE_URL,
+) -> dict[str, Any]:
     """Query usage dashboard."""
-    resp = client.get(f"/v1/usage?period={period}")
-    return resp.json() if resp.status_code == 200 else {}
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            resp = client.get(f"/v1/usage?period={period}")
+            return resp.json() if resp.status_code == 200 else {}
+        except Exception as e:
+            if _is_connection_error(e) and attempt < max_retries:
+                if _wait_for_server(_base_url, context=f"get_usage attempt {attempt + 1}"):
+                    continue
+            raise
 
 
-def get_models(client: httpx.Client) -> dict[str, Any]:
+def get_models(
+    client: httpx.Client,
+    _base_url: str = DEFAULT_BASE_URL,
+) -> dict[str, Any]:
     """List available models."""
-    resp = client.get("/v1/models")
-    return resp.json() if resp.status_code == 200 else {}
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            resp = client.get("/v1/models")
+            return resp.json() if resp.status_code == 200 else {}
+        except Exception as e:
+            if _is_connection_error(e) and attempt < max_retries:
+                if _wait_for_server(_base_url, context=f"get_models attempt {attempt + 1}"):
+                    continue
+            raise
 
 
 # ---------------------------------------------------------------------------

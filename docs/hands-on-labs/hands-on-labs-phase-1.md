@@ -56,14 +56,14 @@ All labs run **locally for free**. Cloud costs if you deploy:
 
 ## 🫏 The Donkey Analogy — Understanding Phase 1 Gateway Metrics
 
-Imagine the gateway as a donkey dispatcher at a village hub:
-
-- It chooses which model road to use (provider routing).
-- It remembers recent deliveries for speed (semantic cache).
-- It limits queue overload at the gate (rate limiting).
-- It prepares location vectors for smart lookup (embeddings).
-
-This phase checks whether that dispatcher is fast, correct, and stable under load.
+| Metric | 🫏 Donkey Analogy | What It Means for the Gateway | How It's Calculated |
+|--------|-------------------|-------------------------------|---------------------|
+| **Provider Routing** | Chooses which model road to use | Selects the right LLM backend (OpenAI, Azure, local) based on config | Config lookup → provider factory → route request to correct endpoint |
+| **Semantic Cache** | Remembers recent deliveries for speed | Skips the LLM call if a similar question was already answered | Embed query → cosine similarity vs cache → hit if similarity > threshold |
+| **Rate Limiting** | Limits queue overload at the gate | Prevents exhausting shared LLM quotas under burst traffic | Token-bucket or fixed-window counter → reject/queue if limit exceeded |
+| **Embeddings** | Prepares location vectors for smart lookup | Converts text to vectors for cache matching or downstream retrieval | Call embedding model → return float[] of dimension 384–1536 |
+| **Latency** | How quickly the donkey completes a round trip | End-to-end response time including provider + cache overhead | `time_end − time_start` on the full request lifecycle (ms) |
+| **Health** | Checks the donkey is alive and ready for work | Confirms all gateway dependencies (LLM provider, cache, DB) are reachable | `GET /health` → poll each dependency → return aggregate status |
 
 ---
 

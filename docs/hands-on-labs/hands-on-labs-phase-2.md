@@ -17,12 +17,12 @@
 
 ## 🫏 The Donkey Analogy — Understanding Phase 2 Production Operations
 
-Now the donkey hub is in production:
-
-- Cost tracking is counting hay spent per trip.
-- Health checks confirm each stable door is open.
-- Tracing follows one package end-to-end via request IDs.
-- Docker stack means the whole depot can be recreated identically.
+| Metric | 🫏 Donkey Analogy | What It Means for the Gateway | How It's Calculated |
+|--------|-------------------|-------------------------------|---------------------|
+| **Cost Tracking** | Counting hay spent per trip | Attributing token usage and cost to each request/model | `Σ(prompt_tokens + completion_tokens) × price_per_token` per provider |
+| **Health Checks** | Confirms each stable door is open | Validates all dependencies are live before serving traffic | `GET /health` → check provider, cache, DB status → return OK/degraded |
+| **Request Tracing** | Follows one package end-to-end via request IDs | Correlates logs across services for debugging and observability | Propagate `x-request-id` header → log at each stage → aggregate in traces |
+| **Docker Deployment** | The whole depot can be recreated identically | Reproducible multi-service stack (gateway + dependencies) | `docker compose up` → build image → mount config → expose ports |
 
 ---
 
