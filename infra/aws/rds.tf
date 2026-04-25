@@ -12,7 +12,7 @@ resource "aws_db_instance" "postgres" {
   allocated_storage      = 20
   db_name                = "ai_gateway"
   username               = "gateway"
-  password               = "gateway-dev-password" # Use Secrets Manager in production
+  password               = var.db_password # Set via TF_VAR_db_password env var; rotate via Secrets Manager in production
   skip_final_snapshot    = true
   publicly_accessible    = false
   vpc_security_group_ids = [aws_security_group.gateway.id]

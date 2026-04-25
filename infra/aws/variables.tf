@@ -38,3 +38,9 @@ variable "alert_email" {
   description = "Email address for budget alerts (80% warning + 100% kill notification)"
   type        = string
 }
+
+variable "db_password" {
+  description = "RDS master password (set via TF_VAR_db_password env var; never commit a real value)"
+  type        = string
+  sensitive   = true
+}

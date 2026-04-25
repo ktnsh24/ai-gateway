@@ -10,7 +10,7 @@ resource "azurerm_postgresql_flexible_server" "gateway" {
   location               = azurerm_resource_group.gateway.location
   version                = "16"
   administrator_login    = "gateway"
-  administrator_password = "GatewayDev2026!" # Use Key Vault in production
+  administrator_password = var.db_admin_password # Set via TF_VAR_db_admin_password; rotate via Key Vault in production
   sku_name               = "B_Standard_B1ms"
   storage_mb             = 32768
   zone                   = "1"
