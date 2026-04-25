@@ -2,6 +2,13 @@
 
 This is an AI API gateway that routes requests to multiple LLM providers (OpenAI, Azure OpenAI, local Ollama) with semantic caching, rate limiting, and cost tracking.
 
+## Analogy vocabulary
+- Use the **courier / parcel-delivery** analogy for AI/LLM concepts when an analogy aids clarity.
+- LLM = courier; tokens = fuel or parcel weight; prompt = shipping manifest; context = parcels;
+  cache = pickup locker; rate limit = daily dispatch quota; output tokens cost 5× input = express delivery costs 5× standard.
+- **Never** use donkey, pigeon, pigeon-hole, stable, hay, bales, backpack, or "delivery note" vocabulary.
+- Prefer plain English over forced analogies — clarity beats cleverness.
+
 ## Architecture
 - FastAPI server with provider abstraction layer
 - Semantic cache using embeddings + cosine similarity

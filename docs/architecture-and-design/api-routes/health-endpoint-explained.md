@@ -20,18 +20,18 @@
 - [Internal Flow](#internal-flow)
 - [Curl Example](#curl-example)
 - [Error Cases](#error-cases)
-- [Donkey Explainer](#donkey-explainer)
+- [Courier Explainer](#courier-explainer)
 
 ---
 
 ## Endpoint Summary
 
-| Attribute | Value | 🫏 Donkey |
+| Attribute | Value | 🚚 Courier |
 |-----------|-------|-----------|
 | Method | `GET` | A passive check on the dispatcher; the courier never hands in a slip, just looks at the lights. |
 | Path | `/health` | Bare path, no `/v1` prefix, so platform probes (ECS, Container Apps, k8s) hit it without rewrites. |
 | Auth | **None** — listed in `PUBLIC_PATHS` in `APIKeyMiddleware` | Front porch light is always on for monitoring tools; gate guard waves the probe through every time. |
-| Purpose | Combined liveness + readiness: gateway up, Redis reachable, PostgreSQL reachable, model list resolvable | "Is the donkey awake?" check plus a peek at the pigeon-hole shelf and the ledger book to confirm both are within reach. |
+| Purpose | Combined liveness + readiness: gateway up, Redis reachable, PostgreSQL reachable, model list resolvable | "Is the courier awake?" check plus a peek at the pickup locker shelf and the ledger book to confirm both are within reach. |
 
 > Note: there is currently a single `/health` route; no separate `/healthz` or `/readyz` paths are defined. The signal is a unified one.
 
@@ -47,12 +47,12 @@
 
 Pydantic model: `HealthStatus` (`src/models.py`).
 
-| Field | Type | Description | 🫏 Donkey |
+| Field | Type | Description | 🚚 Courier |
 |-------|------|-------------|-----------|
 | `status` | `str` | Always `"healthy"` if the route returned (route never throws — failures are reported per-component) | Light on the dispatcher's desk: green means the dispatch desk itself is responsive, regardless of downstream. |
 | `version` | `str` | Hard-coded `"0.1.0"` for this build | The dispatch-desk model number on the brass plate above the door — useful for confirming a deploy landed. |
-| `provider` | `str` | Active `cloud_provider` (`aws` / `azure` / `local`) | Which stable the dispatcher is pointed at right now — the default depot for any donkey trip. |
-| `redis_connected` | `bool` | `True` when `cache.stats()` reports `enabled=True` | Pigeon-hole shelf reachable — false means semantic cache is degraded to no-cache fallback. |
+| `provider` | `str` | Active `cloud_provider` (`aws` / `azure` / `local`) | Which depot the dispatcher is pointed at right now — the default depot for any delivery. |
+| `redis_connected` | `bool` | `True` when `cache.stats()` reports `enabled=True` | Pickup locker shelf reachable — false means semantic cache is degraded to no-cache fallback. |
 | `database_connected` | `bool` | `True` when `cost_tracker.get_usage_summary()` succeeds | Expense ledger reachable — false means cost rows are buffering in memory and may be lost on restart. |
 | `langfuse_connected` | `bool` | Mirrors `settings.langfuse_enabled` (config flag, not a live probe) | Flag-only check that the optional LLM CCTV is wired in; does not actually ping LangFuse. |
 | `models_available` | `list[str]` | LiteLLM model ids from `router.list_models()` | The roster the dispatcher would read to a courier hitting `/v1/models` right now. |
@@ -116,7 +116,7 @@ A monitoring tool should treat the call as successful only if **all** of `status
 
 ## Error Cases
 
-| Status | `error` code | When it fires | 🫏 Donkey |
+| Status | `error` code | When it fires | 🚚 Courier |
 |--------|--------------|---------------|-----------|
 | `200` | (none) | Always returned when the route runs end-to-end, even if probes flipped flags to `false` | Dispatcher answers the doorbell; some lights inside may be red but the front desk itself is still responsive. |
 | `500` | (default) | Only on truly unexpected errors (e.g. `app.state` missing, framework-level failure) | Dispatcher slumped over the desk — not a downstream outage but the dispatch desk itself has crashed mid-probe. |
@@ -125,13 +125,13 @@ There is no `401` / `403` / `429` — the route bypasses the API-key middleware 
 
 ---
 
-## 🫏 Donkey Explainer
+## 🚚 Courier Explainer
 
-The health route is the stable's "open for business" sign — a quick light-on/light-off check that load balancers, ECS health checks, and monitoring probes can hit without a key, without rate limiting, and without writing a cost line. It reports four things:
+The health route is the gateway's "open for business" sign — a quick light-on/light-off check that load balancers, ECS health checks, and monitoring probes can hit without a key, without rate limiting, and without writing a cost line. It reports four things:
 
-1. **Lights on?** — the gateway is responding, with version + active stable noted.
+1. **Lights on?** — the gateway is responding, with version + active provider noted.
 2. **Cache reachable?** — quick `cache.stats()` poke. Red if Redis is down; semantic cache then degrades to a no-cache pass-through.
 3. **Cost tab reachable?** — a tiny `get_usage_summary` query. Red if PostgreSQL is down; new cost rows buffer in memory and risk loss on restart.
-4. **Roster readable?** — the active donkey models so monitoring sees which would answer if a real call came in.
+4. **Roster readable?** — the active models so monitoring sees which would answer if a real call came in.
 
 Because the route is intentionally tolerant (it never 5xxs on a downstream blip), monitoring should treat any one of `status != healthy`, `redis_connected = false`, or `database_connected = false` as a degraded signal worth waking a human for.

@@ -21,18 +21,18 @@
 - [Internal Flow](#internal-flow)
 - [Curl Example](#curl-example)
 - [Error Cases](#error-cases)
-- [Donkey Explainer](#donkey-explainer)
+- [Courier Explainer](#courier-explainer)
 
 ---
 
 ## Endpoint Summary
 
-| Attribute | Value | 🫏 Donkey |
+| Attribute | Value | 🚚 Courier |
 |-----------|-------|-----------|
 | Method | `POST` | Courier hands in fresh text and walks away with a vector receipt; never a cached lookup. |
-| Path | `/v1/embeddings` | OpenAI-compatible address so any embedding client (LangChain, LlamaIndex, etc.) talks to this stable unchanged. |
+| Path | `/v1/embeddings` | OpenAI-compatible address so any embedding client (LangChain, LlamaIndex, etc.) talks to this depot unchanged. |
 | Auth | Bearer token (when `API_KEYS_ENABLED=true`) | Gate guard checks the same `Authorization: Bearer <key>` header used by every other `/v1` route. |
-| Purpose | Convert text(s) into floating-point vectors via the active embedding model | The stable's GPS-coordinate writer — text in, fixed-length coordinates out, ready to be shelved in a vector store. |
+| Purpose | Convert text(s) into floating-point vectors via the active embedding model | The depot's GPS-coordinate writer — text in, fixed-length coordinates out, ready to be shelved in a vector store. |
 
 ---
 
@@ -40,10 +40,10 @@
 
 Pydantic model: `EmbeddingRequest` (`src/models.py`).
 
-| Field | Type | Required | Default | Description | 🫏 Donkey |
+| Field | Type | Required | Default | Description | 🚚 Courier |
 |-------|------|----------|---------|-------------|-----------|
-| `input` | `str \| list[str]` | ✅ | — | Single text or a batch of texts to embed | The text bundle handed to the GPS-coordinate writer; one string or a stack to encode multiple passages in one stable visit. |
-| `model` | `str` | ❌ | `"default"` | Embedding model id; `"default"` uses the configured embed model for the active provider | Selects which coordinate-writer donkey to use; `"default"` lets the dispatcher pick the registered embedding model for this stable. |
+| `input` | `str \| list[str]` | ✅ | — | Single text or a batch of texts to embed | The text bundle handed to the GPS-coordinate writer; one string or a stack to encode multiple passages in one call. |
+| `model` | `str` | ❌ | `"default"` | Embedding model id; `"default"` uses the configured embed model for the active provider | Selects which coordinate-writer courier to use; `"default"` lets the dispatcher pick the registered embedding model for this depot. |
 | `encoding_format` | `str` | ❌ | `"float"` | `"float"` or `"base64"` (parsed but the gateway always returns `float` arrays) | Format the courier prefers; the dispatch desk currently only stamps coordinates as decimal numbers regardless of the request. |
 
 ---
@@ -52,14 +52,14 @@ Pydantic model: `EmbeddingRequest` (`src/models.py`).
 
 Pydantic model: `EmbeddingResponse`.
 
-| Field | Type | Description | 🫏 Donkey |
+| Field | Type | Description | 🚚 Courier |
 |-------|------|-------------|-----------|
 | `object` | `str` | Always `"list"` | Confirms to the courier the package is a list of vectors, even if only one input was sent in. |
 | `data` | `list[EmbeddingData]` | One entry per input, each with `embedding` (list of floats) and `index` | Each rolled-up coordinate scroll, indexed in the same order the texts were handed in for easy re-pairing. |
-| `model` | `str` | LiteLLM-format embed model id used | Names exactly which coordinate-writer donkey produced the scrolls, e.g. `bedrock/amazon.titan-embed-text-v2:0`. |
-| `usage` | `UsageInfo` | `prompt_tokens` and `total_tokens` (no `completion_tokens` for embeddings) | Cargo-unit tally — only input hay is consumed, since the coordinate-writer doesn't generate prose. |
+| `model` | `str` | LiteLLM-format embed model id used | Names exactly which coordinate-writer courier produced the scrolls, e.g. `bedrock/amazon.titan-embed-text-v2:0`. |
+| `usage` | `UsageInfo` | `prompt_tokens` and `total_tokens` (no `completion_tokens` for embeddings) | Cargo-unit tally — only input fuel is consumed, since the coordinate-writer doesn't generate prose. |
 | `cost` | `CostInfo` | Per-call USD estimate plus provider/model | Expense-ledger line item for the coordinate-writing trip; cached flag is always false here. |
-| `gateway_latency_ms` | `float` | End-to-end gateway time | Total stable-door-to-receipt time covering rate-limit check, provider call, and response serialisation. |
+| `gateway_latency_ms` | `float` | End-to-end gateway time | Total gateway-entrance-to-receipt time covering rate-limit check, provider call, and response serialisation. |
 
 ---
 
@@ -120,17 +120,17 @@ The final `jq` pipe prints the embedding dimensionality (e.g. `768` for `nomic-e
 
 ## Error Cases
 
-| Status | `error` code | When it fires | 🫏 Donkey |
+| Status | `error` code | When it fires | 🚚 Courier |
 |--------|--------------|---------------|-----------|
 | `401` | `authentication_required` | Missing or non-Bearer `Authorization` header on protected path | Courier turned up without a permission slip; gate guard refuses entry before the coordinate-writer is even contacted. |
 | `403` | `forbidden` | Bearer token does not match a configured key | Permission slip is forged — the gate guard recognises it and sends the courier back without looking at the text bundle. |
-| `422` | (FastAPI default) | Pydantic rejected the body (missing `input`, wrong type, etc.) | Stable manager inspected the text bundle, found it the wrong shape, and refused to harness any coordinate-writer at all. |
-| `429` | `rate_limit_exceeded` | Per-key fixed-window quota hit for the current minute | Courier's trip quota is used up for this minute; gate stays shut even though the coordinate-writer is idle. |
-| `502` | `embedding_provider_error` | LiteLLM `embedding()` raised (provider down, bad model id, network error) | The coordinate-writer's far stable picked up but returned a broken receipt — no scrolls came back from the provider. |
+| `422` | (FastAPI default) | Pydantic rejected the body (missing `input`, wrong type, etc.) | Gateway inspected the text bundle, found it the wrong shape, and refused to harness any coordinate-writer at all. |
+| `429` | `rate_limit_exceeded` | Per-key fixed-window quota hit for the current minute | Courier's daily dispatch quota is used up for this minute; gate stays shut even though the coordinate-writer is idle. |
+| `502` | `embedding_provider_error` | LiteLLM `embedding()` raised (provider down, bad model id, network error) | The coordinate-writer's remote depot picked up but returned a broken receipt — no scrolls came back from the provider. |
 
 ---
 
-## 🫏 Donkey Explainer
+## 🚚 Courier Explainer
 
 The embeddings endpoint is the **GPS-coordinate writer**: hand it text and get back the vector (the GPS coordinates) for each input.
 

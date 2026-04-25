@@ -17,12 +17,12 @@
 
 ---
 
-## 🫏 The Donkey Analogy — Understanding Phase 2 Production Operations
+## 🚚 The Courier Analogy — Understanding Phase 2 Production Operations
 
-| Metric | 🫏 Donkey Analogy | What It Means for the Gateway | How It's Calculated |
+| Metric | 🚚 Courier Analogy | What It Means for the Gateway | How It's Calculated |
 |--------|-------------------|-------------------------------|---------------------|
-| **Cost Tracking** | Counting hay spent per trip | Attributing token usage and cost to each request/model | `Σ(prompt_tokens + completion_tokens) × price_per_token` per provider |
-| **Health Checks** | Confirms each stable door is open | Validates all dependencies are live before serving traffic | `GET /health` → check provider, cache, DB status → return OK/degraded |
+| **Cost Tracking** | Counting fuel spent per delivery | Attributing token usage and cost to each request/model | `Σ(prompt_tokens + completion_tokens) × price_per_token` per provider |
+| **Health Checks** | Confirms each depot door is open | Validates all dependencies are live before serving traffic | `GET /health` → check provider, cache, DB status → return OK/degraded |
 | **Request Tracing** | Follows one package end-to-end via request IDs | Correlates logs across services for debugging and observability | Propagate `x-request-id` header → log at each stage → aggregate in traces |
 | **Docker Deployment** | The whole depot can be recreated identically | Reproducible multi-service stack (gateway + dependencies) | `docker compose up` → build image → mount config → expose ports |
 
@@ -392,20 +392,20 @@ The full stack — gateway, Redis, PostgreSQL — starts with one command. Cache
 
 ## Summary
 
-| Lab | Component | Key Learning | 🫏 Donkey |
+| Lab | Component | Key Learning | 🚚 Courier |
 |-----|-----------|-------------|-----------|
-| 5 | Cost Tracker | Usage logging, aggregation, dashboard API | 🫏 Every donkey trip logs its cargo units and provider cost to the leather-bound PostgreSQL ledger, which the dashboard aggregates for the finance stable. |
-| 6 | Health Check | Component monitoring, graceful degradation | 🫏 The "is the donkey awake?" check polls each stable door; if the pigeon-hole shelf is down, the switchboard degrades gracefully rather than refusing all trips. |
-| 7 | Observability | Request IDs, tracing, latency headers | 🫏 The stable CCTV stamps every trip with a unique request ID so you can replay one parcel's entire journey through the tachograph logs end-to-end. |
-| 8 | Docker Compose | Full stack deployment, integration testing | 🫏 The portable mini-stable kit launches the whole depot in one command, wiring the switchboard, pigeon-hole shelf, and expense ledger together instantly. |
+| 5 | Cost Tracker | Usage logging, aggregation, dashboard API | 🚚 Every delivery logs its tokens and provider cost to the leather-bound PostgreSQL ledger, which the dashboard aggregates for the finance depot. |
+| 6 | Health Check | Component monitoring, graceful degradation | 🚚 The "is the courier awake?" check polls each depot door; if the pickup locker shelf is down, the switchboard degrades gracefully rather than refusing all deliveries. |
+| 7 | Observability | Request IDs, tracing, latency headers | 🚚 The observability dashboard stamps every delivery with a unique request ID so you can replay one parcel's entire journey through the tachograph logs end-to-end. |
+| 8 | Docker Compose | Full stack deployment, integration testing | 🚚 The portable stack launches the whole depot in one command, wiring the switchboard, pickup locker shelf, and expense ledger together instantly. |
 
 ## Phase 2 Labs — Skills Checklist
 
-| # | Skill | Lab | Can you explain it? | 🫏 Donkey |
+| # | Skill | Lab | Can you explain it? | 🚚 Courier |
 |---|---|---|---|---|
-| 1 | Usage aggregation and cost attribution | Lab 5 | [ ] Yes | 🫏 The expense ledger aggregates every donkey's cargo units and provider cost per API key so you can prove LLM ROI to the finance stable manager. |
-| 2 | Dependency-aware health interpretation | Lab 6 | [ ] Yes | 🫏 A degraded status means the pigeon-hole or ledger is offline but the dispatch desk is still routing donkeys; only a downed LLM router halts all trips. |
-| 3 | Request tracing with IDs and latency headers | Lab 7 | [ ] Yes | 🫏 Each trip's request ID stitches together every log entry from stable door to provider and back, letting you pinpoint which stage caused a slow delivery. |
-| 4 | End-to-end compose integration validation | Lab 8 | [ ] Yes | 🫏 The portable mini-stable kit test confirms the dispatch desk, pigeon-hole shelf, and expense ledger all exchange parcels correctly in a single compose run. |
+| 1 | Usage aggregation and cost attribution | Lab 5 | [ ] Yes | 🚚 The expense ledger aggregates every courier's tokens and provider cost per API key so you can prove LLM ROI to the finance gateway. |
+| 2 | Dependency-aware health interpretation | Lab 6 | [ ] Yes | 🚚 A degraded status means the pickup locker or ledger is offline but the dispatch desk is still routing couriers; only a downed LLM router halts all deliveries. |
+| 3 | Request tracing with IDs and latency headers | Lab 7 | [ ] Yes | 🚚 Each trip's request ID stitches together every log entry from depot door to provider and back, letting you pinpoint which stage caused a slow delivery. |
+| 4 | End-to-end compose integration validation | Lab 8 | [ ] Yes | 🚚 The portable stack test confirms the dispatch desk, pickup locker shelf, and expense ledger all exchange parcels correctly in a single compose run. |
 
 **All 8 labs cover the complete AI Gateway feature set.** Each maps to real production patterns and certification topics.

@@ -25,28 +25,28 @@
 
 ## What you need before starting
 
-| Tool | Version | Why you need it | 🫏 Donkey |
+| Tool | Version | Why you need it | 🚚 Courier |
 | --- | --- | --- | --- |
-| **Python** | 3.12+ | The gateway is written in Python | 🫏 The stable floor itself — without Python 3.12 the whole dispatch desk refuses to stand up at all. |
-| **Poetry** | 1.8+ | Package manager (manages dependencies + virtual environment) | 🫏 The tack-room organiser that rounds up every dependency harness so all donkeys are fitted before the first trip. |
-| **Git** | 2.40+ | Version control | 🫏 The stable logbook that tracks every blueprint change so you can rewind to any working state if things go wrong. |
-| **Ollama** | Latest | Local LLM and embeddings (for `CLOUD_PROVIDER=local`) | 🫏 The local barn housing the donkey and GPS-coordinate writer so no cloud depot is needed during development. |
-| **Docker** | 24+ | For Redis + PostgreSQL (optional, for full setup) | 🫏 The portable mini-stable kit that spins up the pigeon-hole shelf and expense ledger containers with one command. |
-| **AWS CLI** | 2.x | Connect to AWS services (optional) | 🫏 The command-line pass that authenticates you to the AWS depot so cloud donkeys can be dispatched from the terminal. |
-| **Azure CLI** | 2.x | Connect to Azure services (optional) | 🫏 The command-line pass that authenticates you to the Azure hub so the Container Apps barn accepts your deploy commands. |
-| **Terraform** | 1.5+ | Deploy cloud infrastructure (optional) | 🫏 The stable-blueprints tool that prints AWS or Azure barn infrastructure from code with a single apply command. |
+| **Python** | 3.12+ | The gateway is written in Python | 🚚 the gateway floor itself — without Python 3.12 the whole dispatch desk refuses to stand up at all. |
+| **Poetry** | 1.8+ | Package manager (manages dependencies + virtual environment) | 🚚 The image registry organiser that rounds up every dependency adapter so all couriers are ready for the first delivery. |
+| **Git** | 2.40+ | Version control | 🚚 the gateway logbook that tracks every blueprint change so you can rewind to any working state if things go wrong. |
+| **Ollama** | Latest | Local LLM and embeddings (for `CLOUD_PROVIDER=local`) | 🚚 The local environment housing the courier and GPS-coordinate writer so no cloud depot is needed during development. |
+| **Docker** | 24+ | For Redis + PostgreSQL (optional, for full setup) | 🚚 The local Docker Compose setup that spins up the pickup locker shelf and expense ledger containers with one command. |
+| **AWS CLI** | 2.x | Connect to AWS services (optional) | 🚚 The command-line pass that authenticates you to the AWS depot so cloud couriers can be dispatched from the terminal. |
+| **Azure CLI** | 2.x | Connect to Azure services (optional) | 🚚 The command-line pass that authenticates you to the Azure hub so the Container Apps environment accepts your deploy commands. |
+| **Terraform** | 1.5+ | Deploy cloud infrastructure (optional) | 🚚 the gateway-blueprints tool that prints AWS or Azure environment infrastructure from code with a single apply command. |
 
 ### Check what is already installed
 
 ```bash
-python3 --version      # Need 3.12+
-poetry --version       # Need 1.8+
-git --version          # Need 2.40+
-ollama --version       # Need latest
-docker --version       # Optional
-aws --version          # Optional
-az --version           # Optional
-terraform --version    # Optional
+python3 --version # Need 3.12+
+poetry --version # Need 1.8+
+git --version # Need 2.40+
+ollama --version # Need latest
+docker --version # Optional
+aws --version # Optional
+az --version # Optional
+terraform --version # Optional
 ```
 
 ---
@@ -103,16 +103,16 @@ cp .env.example .env
 
 Edit `.env` with these key settings:
 
-| Variable | Default | Description | 🫏 Donkey |
+| Variable | Default | Description | 🚚 Courier |
 | --- | --- | --- | --- |
-| `CLOUD_PROVIDER` | `local` | LLM provider: `aws`, `azure`, `local` | 🫏 Tells the dispatch desk which stable a donkey works for — local barn, AWS depot, or Azure hub. |
-| `PORT` | `8100` | Server port | 🫏 The front door number where the stable manager listens for incoming delivery note requests from every caller. |
-| `ROUTING_STRATEGY` | `single` | Routing: `single`, `fallback`, `cost`, `round` | 🫏 Decides which donkey gets the next trip — same donkey always, cheapest first, round turns, or sick-donkey fallback. |
-| `CACHE_ENABLED` | `true` | Enable semantic caching (in-memory or Redis) | 🫏 Turns the pigeon-hole of pre-written replies on or off so similar delivery notes skip the donkey entirely. |
-| `CACHE_SIMILARITY_THRESHOLD` | `0.92` | Cosine similarity for cache hits | 🫏 The minimum GPS closeness score before the dispatch desk considers two delivery notes similar enough to reuse the reply. |
-| `RATE_LIMIT_REQUESTS_PER_MINUTE` | `60` | Max requests per API key per minute | 🫏 The trip quota enforced per courier — each API key may dispatch at most this many donkeys per fixed-window minute. |
-| `COST_TRACKING_ENABLED` | `true` | Track per-request costs | 🫏 Switches the donkey expense ledger on or off so every cargo-unit charge is recorded per provider per request. |
-| `API_KEYS_ENABLED` | `false` | Require API key authentication | 🫏 When enabled, the stable's front door demands a valid permission slip before any delivery note is accepted at all. |
+| `CLOUD_PROVIDER` | `local` | LLM provider: `aws`, `azure`, `local` | 🚚 Tells the dispatch desk which depot a courier works for — local environment, AWS depot, or Azure hub. |
+| `PORT` | `8100` | Server port | 🚚 The front door number where the gateway listens for incoming shipping manifests requests from every caller. |
+| `ROUTING_STRATEGY` | `single` | Routing: `single`, `fallback`, `cost`, `round` | 🚚 Decides which courier gets the next delivery — same courier always, cheapest first, round turns, or sick-courier fallback. |
+| `CACHE_ENABLED` | `true` | Enable semantic caching (in-memory or Redis) | 🚚 Turns the pickup locker of pre-written replies on or off so similar shipping manifests skip the courier entirely. |
+| `CACHE_SIMILARITY_THRESHOLD` | `0.92` | Cosine similarity for cache hits | 🚚 The minimum GPS closeness score before the dispatch desk considers two shipping manifests similar enough to reuse the reply. |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | `60` | Max requests per API key per minute | 🚚 The daily dispatch quota enforced per courier — each API key may dispatch at most this many couriers per fixed-window minute. |
+| `COST_TRACKING_ENABLED` | `true` | Track per-request costs | 🚚 Switches the courier expense ledger on or off so every parcel-unit charge is recorded per provider per request. |
+| `API_KEYS_ENABLED` | `false` | Require API key authentication | 🚚 When enabled, the gateway's entry point demands a valid API key before any shipping manifests is accepted at all. |
 
 **Local provider settings (default — works out of the box):**
 
@@ -154,8 +154,8 @@ AZURE_OPENAI_API_VERSION=2024-10-21
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Pull required models
-ollama pull llama3.2          # LLM (~2 GB)
-ollama pull nomic-embed-text  # Embeddings (~275 MB)
+ollama pull llama3.2 # LLM (~2 GB)
+ollama pull nomic-embed-text # Embeddings (~275 MB)
 
 # Verify
 ollama list
@@ -183,22 +183,22 @@ curl http://localhost:8100/health | jq
 
 ```bash
 curl -X POST http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant."},
-      {"role": "user", "content": "Explain Docker Compose in one sentence."}
-    ],
-    "temperature": 0.5
-  }' | jq
+ -H "Content-Type: application/json" \
+ -d '{
+ "messages": [
+ {"role": "system", "content": "You are a helpful assistant."},
+ {"role": "user", "content": "Explain Docker Compose in one sentence."}
+ ],
+ "temperature": 0.5
+ }' | jq
 ```
 
 ### Embeddings
 
 ```bash
 curl -X POST http://localhost:8100/v1/embeddings \
-  -H "Content-Type: application/json" \
-  -d '{"input": "Hello world"}' | jq '.data[0].embedding[:5]'
+ -H "Content-Type: application/json" \
+ -d '{"input": "Hello world"}' | jq '.data[0].embedding[:5]'
 ```
 
 ### Models list
@@ -234,7 +234,7 @@ docker compose ps
 docker compose logs -f app
 
 # Gateway: http://localhost:8100
-# Redis:   localhost:6379
+# Redis: localhost:6379
 # PostgreSQL: localhost:5432
 ```
 
@@ -286,11 +286,11 @@ poetry run start
 
 ### Hardware requirements
 
-| Component | Minimum | Recommended | 🫏 Donkey |
+| Component | Minimum | Recommended | 🚚 Courier |
 | --- | --- | --- | --- |
-| **RAM** | 8 GB | 16 GB | 🫏 The stable's working memory — 8 GB keeps the local donkey trotting; 16 GB lets it gallop without swapping to disk. |
-| **Disk** | 5 GB (for models) | 10 GB | 🫏 Stores the donkey model files pulled from Ollama — the local barn needs at least 5 GB of clear floor space. |
-| **GPU** | Not required (CPU works) | NVIDIA GPU (faster inference) | 🫏 A GPU saddles up the donkey's inference horsepower, slashing response time compared to CPU-only barn operations. |
+| **RAM** | 8 GB | 16 GB | 🚚 the gateway's working memory — 8 GB keeps the local courier trotting; 16 GB lets it gallop without swapping to disk. |
+| **Disk** | 5 GB (for models) | 10 GB | 🚚 Stores the courier model files pulled from Ollama — the local environment needs at least 5 GB of clear floor space. |
+| **GPU** | Not required (CPU works) | NVIDIA GPU (faster inference) | 🚚 A GPU saddles up the courier's inference horsepower, slashing response time compared to CPU-only environment operations. |
 
 ---
 
@@ -334,8 +334,8 @@ Bedrock models are not enabled by default. You need to request access:
 1. Go to AWS Console → Amazon Bedrock → Model access
 2. Click "Manage model access"
 3. Enable:
-   - **Anthropic → Claude 3.5 Sonnet v2** (for LLM)
-   - **Amazon → Titan Text Embeddings V2** (for embeddings)
+ - **Anthropic → Claude 3.5 Sonnet v2** (for LLM)
+ - **Amazon → Titan Text Embeddings V2** (for embeddings)
 4. Wait for approval (usually instant for personal accounts)
 
 ### 9d. Verify AWS connectivity
@@ -345,7 +345,7 @@ aws sts get-caller-identity
 # Should show your account ID and ARN
 
 aws bedrock list-foundation-models --region eu-west-1 \
-  --query "modelSummaries[?contains(modelId, 'claude')].[modelId]" --output table
+ --query "modelSummaries[?contains(modelId, 'claude')].[modelId]" --output table
 ```
 
 ### Cost-saving tips for AWS
@@ -388,7 +388,7 @@ terraform apply -var="cost_limit_eur=5" -var="alert_email=you@example.com"
 # 2. Set CLOUD_PROVIDER=aws in .env (see Step 4)
 
 # 3. Start the gateway
-cd ../..  # back to repo root
+cd ../.. # back to repo root
 poetry run start
 
 # 4. Run labs automatically (in another terminal)
@@ -445,8 +445,8 @@ az account set --subscription "your-subscription-id"
 2. Select your Azure OpenAI resource
 3. Go to Deployments → Create deployment
 4. Deploy:
-   - **gpt-4o** — deployment name: `gpt-4o`
-   - **text-embedding-3-small** — deployment name: `text-embedding-3-small`
+ - **gpt-4o** — deployment name: `gpt-4o`
+ - **text-embedding-3-small** — deployment name: `text-embedding-3-small`
 
 ### 10e. Verify Azure connectivity
 
@@ -455,9 +455,9 @@ az account show
 # Should show your subscription
 
 curl -X POST "https://your-resource.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-10-21" \
-  -H "api-key: your-key" \
-  -H "Content-Type: application/json" \
-  -d '{"messages": [{"role": "user", "content": "Hello"}], "max_tokens": 10}'
+ -H "api-key: your-key" \
+ -H "Content-Type: application/json" \
+ -d '{"messages": [{"role": "user", "content": "Hello"}], "max_tokens": 10}'
 ```
 
 ### Cost-saving tips for Azure
@@ -500,7 +500,7 @@ terraform apply -var="cost_limit_eur=5" -var="alert_email=you@example.com"
 # 2. Set CLOUD_PROVIDER=azure in .env (see Step 4)
 
 # 3. Start the gateway
-cd ../..  # back to repo root
+cd ../.. # back to repo root
 poetry run start
 
 # 4. Run labs automatically (in another terminal)
@@ -538,10 +538,10 @@ poetry run pytest tests/test_cache.py -v
 Expected test files:
 
 ```text
-tests/test_cache.py       - 7 tests (in-memory cache, TTL, stats)
+tests/test_cache.py - 7 tests (in-memory cache, TTL, stats)
 tests/test_completions.py - 12 tests (API, rate limit, cache hit)
 tests/test_cost_tracker.py - 6 tests (logging, aggregation, breakdown)
-tests/test_health.py      - 8 tests (health, models, usage)
+tests/test_health.py - 8 tests (health, models, usage)
 tests/test_rate_limiter.py - 7 tests (allow, reject, reset, per-key)
 ```
 
@@ -552,38 +552,38 @@ tests/test_rate_limiter.py - 7 tests (allow, reject, reset, per-key)
 ```text
 ai-gateway/
 ├── src/
-│   ├── main.py              ← FastAPI app factory + lifespan
-│   ├── config.py            ← Pydantic Settings (all env vars)
-│   ├── models.py            ← Request/response Pydantic models
-│   ├── gateway/
-│   │   ├── router.py        ← LLM routing via LiteLLM (Strategy Pattern)
-│   │   ├── cache.py         ← Semantic cache (Redis / in-memory / none)
-│   │   ├── rate_limiter.py  ← Rate limiting (Redis / in-memory / none)
-│   │   └── cost_tracker.py  ← Usage logging (PostgreSQL / in-memory / none)
-│   ├── routes/
-│   │   ├── health.py        ← GET /health
-│   │   ├── completions.py   ← POST /v1/chat/completions
-│   │   ├── embeddings.py    ← POST /v1/embeddings
-│   │   ├── models.py        ← GET /v1/models
-│   │   └── usage.py         ← GET /v1/usage
-│   └── middleware/
-│       ├── auth.py           ← API key authentication
-│       └── logging.py        ← Request logging + timing
+│ ├── main.py ← FastAPI app factory + lifespan
+│ ├── config.py ← Pydantic Settings (all env vars)
+│ ├── models.py ← Request/response Pydantic models
+│ ├── gateway/
+│ │ ├── router.py ← LLM routing via LiteLLM (Strategy Pattern)
+│ │ ├── cache.py ← Semantic cache (Redis / in-memory / none)
+│ │ ├── rate_limiter.py ← Rate limiting (Redis / in-memory / none)
+│ │ └── cost_tracker.py ← Usage logging (PostgreSQL / in-memory / none)
+│ ├── routes/
+│ │ ├── health.py ← GET /health
+│ │ ├── completions.py ← POST /v1/chat/completions
+│ │ ├── embeddings.py ← POST /v1/embeddings
+│ │ ├── models.py ← GET /v1/models
+│ │ └── usage.py ← GET /v1/usage
+│ └── middleware/
+│ ├── auth.py ← API key authentication
+│ └── logging.py ← Request logging + timing
 ├── scripts/
-│   ├── run_all_labs.py       ← 8 automated lab experiments
-│   ├── run_cloud_labs.sh     ← One-command cloud deploy → run → destroy
-│   └── lab_results/          ← Lab output (local/, aws/, azure/)
-├── tests/                    ← pytest test suite
-├── docs/                     ← Deep documentation
-│   ├── ai-engineering/       ← Technical deep dives
-│   ├── architecture-and-design/
-│   ├── hands-on-labs/        ← 8 hands-on labs with measured results
-│   ├── reference/
-│   └── setup-and-tooling/
+│ ├── run_all_labs.py ← 8 automated lab experiments
+│ ├── run_cloud_labs.sh ← One-command cloud deploy → run → destroy
+│ └── lab_results/ ← Lab output (local/, aws/, azure/)
+├── tests/ ← pytest test suite
+├── docs/ ← Deep documentation
+│ ├── ai-engineering/ ← Technical deep dives
+│ ├── architecture-and-design/
+│ ├── hands-on-labs/ ← 8 hands-on labs with measured results
+│ ├── reference/
+│ └── setup-and-tooling/
 ├── infra/
-│   ├── aws/main.tf           ← ECS + ElastiCache + RDS
-│   └── azure/main.tf         ← Container Apps + Redis + PostgreSQL
-├── docker-compose.yml         ← Local dev: app + Redis + PostgreSQL
+│ ├── aws/main.tf ← ECS + ElastiCache + RDS
+│ └── azure/main.tf ← Container Apps + Redis + PostgreSQL
+├── docker-compose.yml ← Local dev: app + Redis + PostgreSQL
 ├── Dockerfile
 ├── pyproject.toml
 └── .env.example
@@ -627,7 +627,7 @@ poetry install
 ### Terraform errors
 
 ```bash
-cd infra/aws   # or infra/azure
+cd infra/aws # or infra/azure
 terraform init -upgrade
 terraform plan -var="cost_limit_eur=5" -var="alert_email=you@example.com"
 ```

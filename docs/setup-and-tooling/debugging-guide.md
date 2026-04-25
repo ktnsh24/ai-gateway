@@ -25,7 +25,7 @@ curl http://localhost:8100/health | jq
 curl http://localhost:11434/api/tags | jq
 
 # 3. Is Redis running?
-redis-cli ping  # → PONG
+redis-cli ping # → PONG
 
 # 4. Is PostgreSQL running?
 pg_isready -h localhost -p 5432 -U gateway
@@ -96,8 +96,8 @@ curl -v http://localhost:8100/v1/chat/completions -d '{"messages":[{"role":"user
 ```bash
 # Check the error detail
 curl -X POST http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"messages": "wrong type"}' | jq
+ -H "Content-Type: application/json" \
+ -d '{"messages": "wrong type"}' | jq
 
 # messages must be a list of {role, content} objects
 ```
@@ -112,7 +112,7 @@ docker compose logs app | grep ERROR
 
 # Test Ollama directly
 curl http://localhost:11434/api/generate \
-  -d '{"model": "llama3.2", "prompt": "Hi", "stream": false}'
+ -d '{"model": "llama3.2", "prompt": "Hi", "stream": false}'
 
 # For AWS Bedrock — check credentials
 aws bedrock list-foundation-models --region eu-west-1
@@ -145,7 +145,7 @@ Every response includes `X-Request-ID`:
 
 ```bash
 curl -v http://localhost:8100/v1/chat/completions \
-  -d '{"messages":[{"role":"user","content":"test"}]}'
+ -d '{"messages":[{"role":"user","content":"test"}]}'
 # Response header: X-Request-ID: req_abc123
 
 # Find this in logs:
@@ -156,8 +156,8 @@ grep "req_abc123" gateway.log
 
 ```bash
 curl http://localhost:8100/v1/chat/completions \
-  -H "X-Request-ID: my-debug-trace-001" \
-  -d '{"messages":[{"role":"user","content":"test"}]}'
+ -H "X-Request-ID: my-debug-trace-001" \
+ -d '{"messages":[{"role":"user","content":"test"}]}'
 ```
 
 ### Check Swagger UI
@@ -168,7 +168,7 @@ Open http://localhost:8100/docs and use the interactive "Try it out" button.
 
 ```bash
 # Connect to Redis CLI
-redis-cli  # or: docker compose exec redis redis-cli
+redis-cli # or: docker compose exec redis redis-cli
 
 # List all gateway keys
 KEYS "gateway:*"
@@ -207,7 +207,7 @@ GROUP BY model;
 
 # Cache hit rate
 SELECT
-  AVG(CASE WHEN cached THEN 1.0 ELSE 0.0 END) as hit_rate
+ AVG(CASE WHEN cached THEN 1.0 ELSE 0.0 END) as hit_rate
 FROM usage_logs
 WHERE timestamp >= CURRENT_DATE;
 ```
@@ -222,17 +222,17 @@ WHERE timestamp >= CURRENT_DATE;
 # Test cache: send same request twice
 # First request:
 curl http://localhost:8100/v1/chat/completions \
-  -d '{"messages":[{"role":"user","content":"What is 2+2?"}]}' | jq '.cache_hit'
+ -d '{"messages":[{"role":"user","content":"What is 2+2?"}]}' | jq '.cache_hit'
 # → false
 
 # Second request (identical):
 curl http://localhost:8100/v1/chat/completions \
-  -d '{"messages":[{"role":"user","content":"What is 2+2?"}]}' | jq '.cache_hit'
+ -d '{"messages":[{"role":"user","content":"What is 2+2?"}]}' | jq '.cache_hit'
 # → true (should be cache hit)
 
 # Bypass cache:
 curl http://localhost:8100/v1/chat/completions \
-  -d '{"messages":[{"role":"user","content":"What is 2+2?"}],"bypass_cache":true}' | jq '.cache_hit'
+ -d '{"messages":[{"role":"user","content":"What is 2+2?"}],"bypass_cache":true}' | jq '.cache_hit'
 # → false (cache bypassed)
 ```
 
@@ -241,10 +241,10 @@ curl http://localhost:8100/v1/chat/completions \
 ```bash
 # Send requests until rate limit
 for i in $(seq 1 65); do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    http://localhost:8100/v1/chat/completions \
-    -d '{"messages":[{"role":"user","content":"test"}]}')
-  echo "Request $i: $STATUS"
+ STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+ http://localhost:8100/v1/chat/completions \
+ -d '{"messages":[{"role":"user","content":"test"}]}')
+ echo "Request $i: $STATUS"
 done
 # → Requests 1-60: 200
 # → Requests 61-65: 429
@@ -255,7 +255,7 @@ done
 ```bash
 # Send a request then check usage
 curl http://localhost:8100/v1/chat/completions \
-  -d '{"messages":[{"role":"user","content":"test"}]}' > /dev/null
+ -d '{"messages":[{"role":"user","content":"test"}]}' > /dev/null
 
 curl http://localhost:8100/v1/usage?period=today | jq
 ```
@@ -268,28 +268,28 @@ curl http://localhost:8100/v1/usage?period=today | jq
 
 ```bash
 # Check gateway latency
-curl -w "\n  DNS: %{time_namelookup}s\n  Connect: %{time_connect}s\n  TTFB: %{time_starttransfer}s\n  Total: %{time_total}s\n" \
-  http://localhost:8100/v1/chat/completions \
-  -d '{"messages":[{"role":"user","content":"Hi"}]}'
+curl -w "\n DNS: %{time_namelookup}s\n Connect: %{time_connect}s\n TTFB: %{time_starttransfer}s\n Total: %{time_total}s\n" \
+ http://localhost:8100/v1/chat/completions \
+ -d '{"messages":[{"role":"user","content":"Hi"}]}'
 ```
 
 ### Expected Latencies
 
-| Component | Expected | If Slow | 🫏 Donkey |
+| Component | Expected | If Slow | 🚚 Courier |
 |-----------|----------|---------|-----------|
-| Health check | <10ms | Database connectivity | 🫏 The "is the donkey awake?" check clears the stable gate in under 10 ms when all barn doors are open. |
-| Cache hit | <10ms | Redis connection slow | 🫏 The fast pigeon-hole shelf returns a pre-written reply in under 10 ms when Redis is humming along smoothly. |
-| Cache miss (LLM) | 500ms-5s | Provider latency (normal) | 🫏 When no pre-written reply exists, the delivery note goes to the donkey, taking 500 ms–5 s for a fresh run. |
-| Rate limit check | <1ms | Redis connection slow | 🫏 Checking whether the courier still has trips left in their per-key quota takes under 1 ms against the fast pigeon-hole shelf. |
-| Cost log | <5ms | PostgreSQL slow | 🫏 Scribbling the cargo-unit tally into the leather-bound expense ledger takes under 5 ms when PostgreSQL is healthy. |
+| Health check | <10ms | Database connectivity | 🚚 The "is the courier awake?" check clears the gateway gate in under 10 ms when all environment doors are open. |
+| Cache hit | <10ms | Redis connection slow | 🚚 The fast pickup locker shelf returns a pre-written reply in under 10 ms when Redis is humming along smoothly. |
+| Cache miss (LLM) | 500ms-5s | Provider latency (normal) | 🚚 When no pre-written reply exists, the shipping manifests goes to the courier, taking 500 ms–5 s for a fresh run. |
+| Rate limit check | <1ms | Redis connection slow | 🚚 Checking whether the courier still has deliveries left in their per-key quota takes under 1 ms against the fast pickup locker shelf. |
+| Cost log | <5ms | PostgreSQL slow | 🚚 Scribbling the parcel-unit tally into the expense ledger takes under 5 ms when PostgreSQL is healthy. |
 
 ---
 
 ## 6. Cross-References
 
-| Topic | Document | 🫏 Donkey |
+| Topic | Document | 🚚 Courier |
 |-------|----------|-----------|
-| Getting started | [Getting Started](getting-started.md) | 🫏 The orientation pack that gets a new stable hand from zero to dispatching their first donkey in under five minutes. |
-| Docker setup | [Docker Compose Guide](docker-compose-guide.md) | 🫏 The portable mini-stable kit guide showing how app, Redis shelf, and PostgreSQL ledger containers start together. |
-| Architecture | [Architecture](../architecture-and-design/architecture.md) | 🫏 The full stable blueprint mapping every donkey path from the front door through the GPS warehouse and back. |
-| API specification | [API Contract](../architecture-and-design/api-contract.md) | 🫏 The official delivery contract listing every route, payload shape, and error code the dispatch desk will accept. |
+| Getting started | [Getting Started](getting-started.md) | 🚚 The orientation pack that gets a new on-call engineer from zero to dispatching their first courier in under five minutes. |
+| Docker setup | [Docker Compose Guide](docker-compose-guide.md) | 🚚 The local Docker Compose setup guide showing how app, Redis shelf, and PostgreSQL ledger containers start together. |
+| Architecture | [Architecture](../architecture-and-design/architecture.md) | 🚚 The full depot blueprint mapping every courier path from the front door through the GPS warehouse and back. |
+| API specification | [API Contract](../architecture-and-design/api-contract.md) | 🚚 The official delivery contract listing every route, payload shape, and error code the dispatch desk will accept. |

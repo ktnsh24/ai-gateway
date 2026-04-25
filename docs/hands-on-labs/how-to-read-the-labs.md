@@ -41,7 +41,7 @@ The gateway labs are **NOT one lab per metric**. They are **one lab per knob**, 
 
 So when Lab 2 reports `cache_hit=true, latency=5ms` and Lab 3 reports `error_rate=37%, latency=2ms`, those numbers exist because that's how we tell whether **turning that knob** improved the system or made it worse than the Lab 1 baseline. **The ruler doesn't change between labs — only the knob you're turning does.**
 
-> 🫏 **Donkey way:** the report card always grades the same five subjects — speed, cache hits, cost, rejected requests, and throughput. Each lab is a different lesson plan for those same subjects.
+> 🚚 **Courier way:** the report card always grades the same five subjects — speed, cache hits, cost, rejected requests, and throughput. Each lab is a different lesson plan for those same subjects.
 
 ---
 
@@ -59,7 +59,7 @@ Memorise these once and the labs feel half as long.
 
 There is no single "overall score" like in rag-chatbot — the gateway is judged on a *trade-off*, not a composite. A high cache-hit rate is great UNLESS the threshold is so loose you're returning wrong answers. A low cost is great UNLESS error rate jumped because you starved the provider with too tight a rate limit. **Always read at least two of the five together.**
 
-> 🫏 **Donkey way:** read the report card as a row, not a column — speed, cargo weight, cost, complaints, and trips-per-shift only make sense together.
+> 🚚 **Courier way:** read the report card as a row, not a column — speed, parcel weight, cost, complaints, and deliveries-per-shift only make sense together.
 
 ---
 
@@ -84,7 +84,7 @@ Applying the 5-question method to Phase 1 Lab 2 ("Semantic Cache in Action"):
 | # | Question | Answer for Lab 2 |
 | --- | --- | --- |
 | 1 | What knob? | The cache itself — first request bypasses (forced miss), then identical, semantic-similar, different-topic, and explicit `bypass_cache: true` requests are sent to probe what counts as a hit. |
-| 2 | Hypothesis? | "Identical prompts hit instantly (~5 ms), paraphrases hit if cosine similarity ≥ ~0.92, unrelated prompts miss, and `bypass_cache: true` always misses regardless of pigeon-hole contents." |
+| 2 | Hypothesis? | "Identical prompts hit instantly (~5 ms), paraphrases hit if cosine similarity ≥ ~0.92, unrelated prompts miss, and `bypass_cache: true` always misses regardless of pickup locker contents." |
 | 3 | Baseline? | Lab 1 — cold cache, every request a full ~1500 ms LLM round-trip. |
 | 4 | Yardstick? | `latency_ms` and `cache_hit %` are the dominant signals here. `cost` drops to ~0 on a hit because no LLM tokens are spent. `error_rate` and `throughput` should be flat (cache failures shouldn't introduce errors; throughput obviously rises with hits). |
 | 5 | Takeaway? | Turn the cache **ON** for any workload with repeat or paraphrased questions (chatbots, FAQ, support). Lower the similarity threshold for higher hit % at the cost of occasionally returning the wrong cached answer. Raise it (towards 0.99) for code or numeric prompts where wrong-but-close is unacceptable. |
@@ -99,7 +99,7 @@ Phase order (Config Tuning → Phase 1 → Phase 2) is fine for reference. For *
 
 | Step | Lab | Why this order |
 | --- | --- | --- |
-| 1 | **Phase 1 Lab 1** First request | Learn the empty-yardstick baseline — no cache, no quota tripped, full provider latency. |
+| 1 | **Phase 1 Lab 1** First request | Learn the empty-yardstick baseline — no cache, no quota deliveryped, full provider latency. |
 | 2 | **Phase 1 Lab 2** Cache | First experiment that moves `latency_ms` and `cache_hit %` dramatically. |
 | 3 | **Phase 1 Lab 3** Rate limit | Introduces `error_rate %` (specifically 429s) — the first knob that *hurts* on purpose. |
 | 4 | **Phase 1 Lab 4** Embeddings | Same yardstick, different endpoint — proves the gateway is consistent, not chat-only. |
@@ -114,23 +114,23 @@ After Lab 1 + Lab 2, **every other lab is "what happens to those five numbers wh
 
 The single-sentence summary of every gateway lab. Bookmark this table.
 
-| Lab | Knob | Yardstick metrics primarily affected | 🫏 Donkey |
+| Lab | Knob | Yardstick metrics primarily affected | 🚚 Courier |
 | --- | --- | --- | --- |
-| Phase 1 Lab 1 | none (baseline cold-start) | latency (cold), cache_hit=0 | First trip ever — empty pigeon-hole, fresh donkey, full route, no shortcuts. |
-| Phase 1 Lab 2 | semantic cache (on, vs bypass) | cache_hit %, latency_ms | The pigeon-hole shelf — does a paraphrased slip get the same note in 5 ms? |
+| Phase 1 Lab 1 | none (baseline cold-start) | latency (cold), cache_hit=0 | First delivery ever — empty pickup locker, fresh courier, full route, no shortcuts. |
+| Phase 1 Lab 2 | semantic cache (on, vs bypass) | cache_hit %, latency_ms | The pickup locker shelf — does a paraphrased slip get the same note in 5 ms? |
 | Phase 1 Lab 3 | `RATE_LIMIT_PER_MINUTE` (e.g. 5) | error_rate (429), throughput | Trip quota per courier — how the gate slams when one badge runs over budget. |
-| Phase 1 Lab 4 | endpoint = `/v1/embeddings` | latency, cost (per cargo unit) | The GPS-coordinate writer — same dispatch desk, different output type. |
-| Config Tuning #1 | `CACHE_TTL_SECONDS` sweep | cache_hit %, freshness vs staleness | How long pre-written notes stay in the pigeon-hole before the dispatcher tosses them. |
+| Phase 1 Lab 4 | endpoint = `/v1/embeddings` | latency, cost (per parcel unit) | The GPS-coordinate writer — same dispatch desk, different output type. |
+| Config Tuning #1 | `CACHE_TTL_SECONDS` sweep | cache_hit %, freshness vs staleness | How long pre-written notes stay in the pickup locker before the dispatcher tosses them. |
 | Config Tuning #2 | `CACHE_SIMILARITY_THRESHOLD` sweep | cache_hit %, wrong-answer rate | How loose a paraphrase the dispatcher accepts as "same question". |
-| Config Tuning #3 | `ROUTING_STRATEGY` (single / fallback / cost / round-robin) | latency, cost, error_rate | Which donkey gets the next slip — fixed donkey, backup donkey, cheapest donkey, or take-turns. |
-| Config Tuning #4 | `LLM_TEMPERATURE` (0.0 / 0.3 / 0.7) | (qualitative) answer variability + cost flat | How predictable the donkey's writing is — 0.0 same words every trip, 0.7 creative. |
-| Config Tuning #5 | `LLM_MAX_TOKENS` (256 / 1024 / 4096) | cost per request, truncation rate | How heavy a parcel the donkey is allowed to carry back — small caps cut answers mid-sentence, large caps inflate spend. |
-| Config Tuning #6 | model swap (Sonnet ↔ Haiku ↔ GPT-4o ↔ llama3.2) | cost ($/1k req), latency, error_rate | Which donkey today — strong-and-expensive, fast-and-cheap, or the local barn donkey for free. |
+| Config Tuning #3 | `ROUTING_STRATEGY` (single / fallback / cost / round-robin) | latency, cost, error_rate | Which courier gets the next slip — fixed courier, backup courier, cheapest courier, or take-turns. |
+| Config Tuning #4 | `LLM_TEMPERATURE` (0.0 / 0.3 / 0.7) | (qualitative) answer variability + cost flat | How predictable the model's output is — 0.0 same words every delivery, 0.7 creative. |
+| Config Tuning #5 | `LLM_MAX_TOKENS` (256 / 1024 / 4096) | cost per request, truncation rate | How heavy a parcel the courier is allowed to carry back — small caps cut answers mid-sentence, large caps inflate spend. |
+| Config Tuning #6 | model swap (Sonnet ↔ Haiku ↔ GPT-4o ↔ llama3.2) | cost ($/1k req), latency, error_rate | Which courier today — strong-and-expensive, fast-and-cheap, or the local depot courier for free. |
 | Config Tuning #7 | `RATE_LIMIT_PER_MINUTE` sweep | error_rate (429), throughput | Same gate, different opening hours — find the quota that protects budget without starving real users. |
-| Config Tuning #8 | semantic-cache ON vs OFF | cache_hit %, cost | The big switch — pigeon-hole present or removed entirely. |
-| Phase 2 (fallback) | `ROUTING_STRATEGY=fallback` + simulated outage | error_rate (should ~0), latency (slight bump on failover) | Knock primary donkey out — does the backup pick up the slip without the customer noticing? |
-| Phase 2 (cost) | `ROUTING_STRATEGY=cost` under load | cost ($/1k req), latency distribution | Cheapest donkey first — does the bill drop without latency exploding? |
-| Phase 2 (observability) | logging / metrics dashboards on | none directly — visibility of all 5 above | Turn on the stable CCTV — every move now shows up in the dashboard. |
+| Config Tuning #8 | semantic-cache ON vs OFF | cache_hit %, cost | The big switch — pickup locker present or removed entirely. |
+| Phase 2 (fallback) | `ROUTING_STRATEGY=fallback` + simulated outage | error_rate (should ~0), latency (slight bump on failover) | Knock primary courier out — does the backup pick up the slip without the customer noticing? |
+| Phase 2 (cost) | `ROUTING_STRATEGY=cost` under load | cost ($/1k req), latency distribution | Cheapest courier first — does the bill drop without latency exploding? |
+| Phase 2 (observability) | logging / metrics dashboards on | none directly — visibility of all 5 above | Turn on the observability dashboard — every move now shows up in the dashboard. |
 
 ---
 
@@ -140,12 +140,12 @@ The single-sentence summary of every gateway lab. Bookmark this table.
 2. **Don't compare across knobs.** "Lab 3 had 37 % errors but Lab 2 had 0 % errors" is a meaningless comparison — they're turning different knobs. Compare each lab against its own baseline only.
 3. **Don't skip the hypothesis step.** If you read the result before writing down the hypothesis, you'll rationalise whatever you see. Write the prediction first, then read the table.
 4. **Don't run a lab without the previous lab's numbers handy.** A delta needs a reference. If you can't quote the baseline number, you can't read the lab.
-5. **Don't assume the local barn (Ollama) numbers translate to AWS/Azure.** Latency and cost shift by an order of magnitude between providers. Re-run the lab on the provider you actually plan to deploy on before drawing conclusions.
+5. **Don't assume the local depot (Ollama) numbers translate to AWS/Azure.** Latency and cost shift by an order of magnitude between providers. Re-run the lab on the provider you actually plan to deploy on before drawing conclusions.
 6. **Don't add a sixth metric without removing one.** The yardstick is five columns on purpose. If you add `p99_latency` you'd better drop `throughput` from your default view, otherwise tables become unreadable.
 
-> 🫏 **Final donkey wisdom:** every gateway lab is one of these two questions, dressed differently:
+> 🚚 **Final courier wisdom:** every gateway lab is one of these two questions, dressed differently:
 >
-> - "I changed knob X. Did the cache hit more, did the donkey get faster, or did the bill go down?" (Cache, TTL, similarity, model swap, cost routing)
-> - "I changed knob X. Did anyone get rate-limited, did fallback kick in, did a backup donkey have to step in?" (Rate limit, fallback, max_tokens truncation)
+> - "I changed knob X. Did the cache hit more, did the courier get faster, or did the bill go down?" (Cache, TTL, similarity, model swap, cost routing)
+> - "I changed knob X. Did anyone get rate-limited, did fallback kick in, did a backup courier have to step in?" (Rate limit, fallback, max_tokens truncation)
 >
 > Once you see this, the labs stop feeling repetitive. They become a series of small, controlled experiments — exactly what production AI engineering actually is.

@@ -20,18 +20,18 @@
 - [Internal Flow](#internal-flow)
 - [Curl Example](#curl-example)
 - [Error Cases](#error-cases)
-- [Donkey Explainer](#donkey-explainer)
+- [Courier Explainer](#courier-explainer)
 
 ---
 
 ## Endpoint Summary
 
-| Attribute | Value | 🫏 Donkey |
+| Attribute | Value | 🚚 Courier |
 |-----------|-------|-----------|
-| Method | `GET` | A read-only roster check; the dispatcher just tells the courier which donkeys are on shift, no slip required. |
+| Method | `GET` | A read-only roster check; the dispatcher just tells the courier which couriers are on shift, no slip required. |
 | Path | `/v1/models` | OpenAI-shaped path so SDKs like the official `openai` Python client list models against this gateway with no patches. |
 | Auth | Bearer token (when `API_KEYS_ENABLED=true`) | Even the roster is gated; the gate guard still wants a valid permission slip before showing the staff schedule. |
-| Purpose | List the chat + embedding models the configured provider exposes today | The dispatcher's wall roster — every donkey currently on duty and what cargo type they're certified to carry. |
+| Purpose | List the chat + embedding models the configured provider exposes today | The dispatcher's wall roster — every courier currently on duty and what parcel type they're certified to carry. |
 
 ---
 
@@ -47,16 +47,16 @@ There is intentionally no filter (provider, capability, etc.) in this build — 
 
 Pydantic model: `ModelListResponse` containing a list of `ModelInfo` entries.
 
-| Field | Type | Description | 🫏 Donkey |
+| Field | Type | Description | 🚚 Courier |
 |-------|------|-------------|-----------|
 | `object` | `str` | Always `"list"` | Confirms the package is a list — matches the OpenAI client's expectation when iterating models. |
-| `data` | `list[ModelInfo]` | One entry per available model | Every donkey on the active roster gets exactly one row, no duplicates across capabilities. |
-| `data[].id` | `str` | LiteLLM-format model id (`provider/model`) | Donkey's stable name plus breed — what you would pass to `model=` on a completions or embeddings call. |
+| `data` | `list[ModelInfo]` | One entry per available model | Every courier on the active roster gets exactly one row, no duplicates across capabilities. |
+| `data[].id` | `str` | LiteLLM-format model id (`provider/model`) | Courier's depot name plus breed — what you would pass to `model=` on a completions or embeddings call. |
 | `data[].object` | `str` | Always `"model"` | OpenAI-spec marker that this row describes a model, not a fine-tune or other resource. |
-| `data[].created` | `int` | Unix timestamp set at row construction | Roster-print timestamp — when this listing was assembled, not when the donkey was hired. |
-| `data[].owned_by` | `str` | `"aws-bedrock"`, `"azure-openai"`, or `"ollama-local"` | Which stable owns the donkey — useful when the courier is choosing between paid and free providers. |
-| `data[].provider` | `str` | Cloud provider key: `aws`, `azure`, `local` | Short tag matching `preferred_provider` so the courier can pin a follow-up call to the same stable. |
-| `data[].capabilities` | `list[str]` | E.g. `["chat"]` or `["embedding"]` | What cargo type the donkey is licensed to carry — chat replies, vector scrolls, or both. |
+| `data[].created` | `int` | Unix timestamp set at row construction | Roster-print timestamp — when this listing was assembled, not when the courier was hired. |
+| `data[].owned_by` | `str` | `"aws-bedrock"`, `"azure-openai"`, or `"ollama-local"` | Which depot owns the courier — useful when the courier is choosing between paid and free providers. |
+| `data[].provider` | `str` | Cloud provider key: `aws`, `azure`, `local` | Short tag matching `preferred_provider` so the courier can pin a follow-up call to the same depot. |
+| `data[].capabilities` | `list[str]` | E.g. `["chat"]` or `["embedding"]` | What parcel type the courier is licensed to carry — chat replies, vector scrolls, or both. |
 
 The actual rows come from `LiteLLMRouter.list_models()`, which iterates the internal `_model_map` for the configured provider (single mode) or all known providers (fallback / round-robin / cost modes).
 
@@ -108,18 +108,18 @@ Sample output for a `local` provider deployment:
 
 ## Error Cases
 
-| Status | `error` code | When it fires | 🫏 Donkey |
+| Status | `error` code | When it fires | 🚚 Courier |
 |--------|--------------|---------------|-----------|
 | `401` | `authentication_required` | `APIKeyMiddleware` saw no Bearer header on a protected path | Courier asked to see the roster without showing a permission slip; gate guard sends them away. |
 | `403` | `forbidden` | Bearer token does not match a configured key | Slip was wrong colour — the gate guard refuses to even pull the staff schedule off the wall. |
-| `500` | (default) | Unexpected exception inside `list_models()` (e.g. corrupted `_model_map`) | Stable manager dropped the staff schedule; nothing the courier did wrong, but the dispatch desk has to recover. |
+| `500` | (default) | Unexpected exception inside `list_models()` (e.g. corrupted `_model_map`) | Gateway dropped the staff schedule; nothing the courier did wrong, but the dispatch desk has to recover. |
 
 (There is no `429` here because the rate limiter is intentionally not invoked on the metadata route.)
 
 ---
 
-## 🫏 Donkey Explainer
+## 🚚 Courier Explainer
 
-This is the **roster of available donkeys**. Ask "who's on shift?" and the gateway lists every donkey (model) currently registered, which stable they belong to (AWS, Azure, local Ollama), and what cargo they carry (chat replies vs embeddings).
+This is the **roster of available couriers**. Ask "who's on shift?" and the gateway lists every courier (model) currently registered, which depot they belong to (AWS, Azure, local Ollama), and what parcel they carry (chat replies vs embeddings).
 
-It is read-only and cheap: no donkey is woken, no cache is opened, and no line is written to the cost tab. It exists so clients — and OpenAI-shaped libraries — can discover what they may ask for before sending a real delivery note to the [completions](completions-endpoint-explained.md) or [embeddings](embeddings-endpoint-explained.md) endpoints.
+It is read-only and cheap: no courier is woken, no cache is opened, and no line is written to the cost tab. It exists so clients — and OpenAI-shaped libraries — can discover what they may ask for before sending a real shipping manifest to the [completions](completions-endpoint-explained.md) or [embeddings](embeddings-endpoint-explained.md) endpoints.

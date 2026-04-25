@@ -41,12 +41,12 @@ docker compose down -v
 
 ## 2. Services Overview
 
-| Service | Image | Port | Purpose | 🫏 Donkey |
+| Service | Image | Port | Purpose | 🚚 Courier |
 |---------|-------|------|---------|-----------|
-| `app` | Build from Dockerfile | 8100 | AI Gateway API | 🫏 The stable manager listening on door 8100 — every cart pulls up here before any donkey is dispatched on a trip. |
-| `redis` | `redis:7-alpine` | 6379 | Semantic cache + rate limiting | 🫏 The fast pigeon-hole shelf on door 6379 storing pre-written replies and enforcing each courier's per-key trip quota. |
-| `pg` | `postgres:16-alpine` | 5432 | Cost tracking (usage_logs table) | 🫏 The leather-bound expense ledger on door 5432 where every cargo-unit cost is permanently recorded per request. |
-| `langfuse` | `langfuse/langfuse:2` | 3000 | LLM observability (optional) | 🫏 The optional stable CCTV dashboard on door 3000 that records every donkey journey for replay and cost analysis. |
+| `app` | Build from Dockerfile | 8100 | AI Gateway API | 🚚 The gateway listening on door 8100 — every cart pulls up here before any courier is dispatched on a delivery. |
+| `redis` | `redis:7-alpine` | 6379 | Semantic cache + rate limiting | 🚚 The fast pickup locker shelf on door 6379 storing pre-written replies and enforcing each courier's per-key daily dispatch quota. |
+| `pg` | `postgres:16-alpine` | 5432 | Cost tracking (usage_logs table) | 🚚 The expense ledger on door 5432 where every parcel-unit cost is permanently recorded per request. |
+| `langfuse` | `langfuse/langfuse:2` | 3000 | LLM observability (optional) | 🚚 The optional gateway's observability stack dashboard on door 3000 that records every courier journey for replay and cost analysis. |
 
 ### Network
 
@@ -63,19 +63,19 @@ All services share a `gateway-net` bridge network and communicate via service na
 
 ```yaml
 app:
-  build: .
-  ports:
-    - "8100:8100"
-  environment:
-    - CLOUD_PROVIDER=local
-    - REDIS_URL=redis://redis:6379
-    - POSTGRESQL_URL=postgresql+asyncpg://gateway:gateway@pg:5432/gateway
-    - OLLAMA_BASE_URL=http://host.docker.internal:11434
-  depends_on:
-    redis:
-      condition: service_healthy
-    pg:
-      condition: service_healthy
+ build: .
+ ports:
+ - "8100:8100"
+ environment:
+ - CLOUD_PROVIDER=local
+ - REDIS_URL=redis://redis:6379
+ - POSTGRESQL_URL=postgresql+asyncpg://gateway:gateway@pg:5432/gateway
+ - OLLAMA_BASE_URL=http://host.docker.internal:11434
+ depends_on:
+ redis:
+ condition: service_healthy
+ pg:
+ condition: service_healthy
 ```
 
 **Note:** `host.docker.internal` lets the container reach Ollama running on the host machine.
@@ -84,17 +84,17 @@ app:
 
 ```yaml
 redis:
-  image: redis:7-alpine
-  ports:
-    - "6379:6379"
-  volumes:
-    - redis_data:/data
-  healthcheck:
-    test: ["CMD", "redis-cli", "ping"]
-    interval: 5s
-    timeout: 3s
-    retries: 5
-  command: redis-server --appendonly yes
+ image: redis:7-alpine
+ ports:
+ - "6379:6379"
+ volumes:
+ - redis_data:/data
+ healthcheck:
+ test: ["CMD", "redis-cli", "ping"]
+ interval: 5s
+ timeout: 3s
+ retries: 5
+ command: redis-server --appendonly yes
 ```
 
 **`--appendonly yes`** enables AOF persistence — data survives container restarts.
@@ -103,20 +103,20 @@ redis:
 
 ```yaml
 pg:
-  image: postgres:16-alpine
-  ports:
-    - "5432:5432"
-  environment:
-    POSTGRES_USER: gateway
-    POSTGRES_PASSWORD: gateway
-    POSTGRES_DB: gateway
-  volumes:
-    - pg_data:/var/lib/postgresql/data
-  healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U gateway"]
-    interval: 5s
-    timeout: 3s
-    retries: 5
+ image: postgres:16-alpine
+ ports:
+ - "5432:5432"
+ environment:
+ POSTGRES_USER: gateway
+ POSTGRES_PASSWORD: gateway
+ POSTGRES_DB: gateway
+ volumes:
+ - pg_data:/var/lib/postgresql/data
+ healthcheck:
+ test: ["CMD-SHELL", "pg_isready -U gateway"]
+ interval: 5s
+ timeout: 3s
+ retries: 5
 ```
 
 ### LangFuse (Optional)
@@ -124,17 +124,17 @@ pg:
 ```yaml
 # Start with: docker compose --profile langfuse up -d
 langfuse:
-  image: langfuse/langfuse:2
-  profiles: ["langfuse"]
-  ports:
-    - "3000:3000"
-  environment:
-    DATABASE_URL: postgresql://gateway:gateway@pg:5432/gateway
-    NEXTAUTH_SECRET: secret
-    NEXTAUTH_URL: http://localhost:3000
-  depends_on:
-    pg:
-      condition: service_healthy
+ image: langfuse/langfuse:2
+ profiles: ["langfuse"]
+ ports:
+ - "3000:3000"
+ environment:
+ DATABASE_URL: postgresql://gateway:gateway@pg:5432/gateway
+ NEXTAUTH_SECRET: secret
+ NEXTAUTH_URL: http://localhost:3000
+ depends_on:
+ pg:
+ condition: service_healthy
 ```
 
 ---
@@ -249,8 +249,8 @@ Error: Cannot connect to Redis at redis:6379
 
 Fix:
 ```bash
-docker compose ps redis  # Check if running
-docker compose logs redis  # Check for errors
+docker compose ps redis # Check if running
+docker compose logs redis # Check for errors
 docker compose restart redis
 ```
 
@@ -279,7 +279,7 @@ Fix:
 # On Linux, use host.docker.internal or the host's IP
 # Or add to docker-compose.yml:
 extra_hosts:
-  - "host.docker.internal:host-gateway"
+ - "host.docker.internal:host-gateway"
 ```
 
 ### Port Already in Use
@@ -299,10 +299,10 @@ lsof -i :8100
 
 ## 7. Cross-References
 
-| Topic | Document | 🫏 Donkey |
+| Topic | Document | 🚚 Courier |
 |-------|----------|-----------|
-| Getting started | [Getting Started](getting-started.md) | 🫏 The orientation pack that walks a new stable hand through setting up the whole dispatch desk from scratch. |
-| Architecture | [Architecture](../architecture-and-design/architecture.md) | 🫏 The full stable blueprint explaining how the dispatch desk, pigeon-hole shelf, and expense ledger all connect. |
-| Observability + LangFuse | [Observability Deep Dive](../ai-engineering/observability-deep-dive.md) | 🫏 The deep-dive into stable CCTV and tachograph showing how to trace each donkey trip through LangFuse dashboards. |
-| Terraform (production) | [Terraform Guide](terraform-guide.md) | 🫏 The stable-blueprints guide for stamping out a full cloud barn on AWS or Azure with a single terraform apply. |
-| Debugging | [Debugging Guide](debugging-guide.md) | 🫏 The stable troubleshooting manual for diagnosing sick donkeys, quota exhaustion, and broken pigeon-hole shelves. |
+| Getting started | [Getting Started](getting-started.md) | 🚚 The orientation pack that walks a new on-call engineer through setting up the whole dispatch desk from scratch. |
+| Architecture | [Architecture](../architecture-and-design/architecture.md) | 🚚 The full depot blueprint explaining how the dispatch desk, pickup locker shelf, and expense ledger all connect. |
+| Observability + LangFuse | [Observability Deep Dive](../ai-engineering/observability-deep-dive.md) | 🚚 The deep-dive into gateway's observability stack and tachograph showing how to trace each courier delivery through LangFuse dashboards. |
+| Terraform (production) | [Terraform Guide](terraform-guide.md) | 🚚 the gateway-blueprints guide for stamping out a full cloud container on AWS or Azure with a single terraform apply. |
+| Debugging | [Debugging Guide](debugging-guide.md) | 🚚 the gateway troubleshooting manual for diagnosing failed couriers, quota exhaustion, and broken pickup locker shelves. |

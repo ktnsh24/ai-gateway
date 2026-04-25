@@ -4,7 +4,7 @@
 >
 > **How to run:** Each lab changes ONE config in `.env`, runs the same 3 questions, records the metrics, and explains the trade-off.
 >
-> **🫏 Donkey lens:** Each lab ends with a donkey takeaway summarising the trade-off in plain language.
+> **🚚 Courier lens:** Each lab ends with a courier takeaway summarising the trade-off in plain language.
 
 ## Table of Contents
 - [Setup — Common to all labs](#setup--common-to-all-labs)
@@ -31,7 +31,7 @@
 
 ---
 
-## Lab 1: Temperature Sweep — "How creative should the donkey be?"
+## Lab 1: Temperature Sweep — "How creative should the courier be?"
 
 **Config:** `LLM_TEMPERATURE` (default: `0.3`; pass-through to provider)
 **What it controls:** Sampling randomness on every routed LLM call.
@@ -43,21 +43,21 @@
 3. Repeat for each value below
 
 ### Results table (fill in as you run)
-| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🫏 Donkey |
+| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🚚 Courier |
 |---|---|---|---|---|---|---|
-| 0.0 | ___ | ___ | ___ | ___ | ___ | 🫏 A zero-temperature donkey delivers identical parcels every time, making the pigeon-hole cache extremely effective at reusing yesterday's reply. |
-| 0.3 | ___ | ___ | ___ | ___ | ___ | 🫏 At 0.3, the donkey adds mild variation to each delivery, balancing cache reuse against reasonable answer diversity for most queries. |
-| 0.7 | ___ | ___ | ___ | ___ | ___ | 🫏 A 0.7-temperature donkey improvises freely, producing varied replies that defeat the pigeon-hole cache and inflate the expense ledger. |
+| 0.0 | ___ | ___ | ___ | ___ | ___ | 🚚 A zero-temperature courier delivers identical parcels every time, making the pickup locker cache extremely effective at reusing yesterday's reply. |
+| 0.3 | ___ | ___ | ___ | ___ | ___ | 🚚 At 0.3, the courier adds mild variation to each delivery, balancing cache reuse against reasonable answer diversity for most queries. |
+| 0.7 | ___ | ___ | ___ | ___ | ___ | 🚚 A 0.7-temperature courier improvises freely, producing varied replies that defeat the pickup locker cache and inflate the expense ledger. |
 
 ### What we learned
 At a gateway, temperature also affects cacheability — non-deterministic outputs make exact-match caching useless. Pin temp=0 for high-volume identical queries.
 
-### 🫏 Donkey takeaway
-Cold donkey delivers the same parcel every time, easy to remember; warm donkey delivers variations and the warehouse can't reuse yesterday's delivery.
+### 🚚 Courier takeaway
+Cold courier delivers the same parcel every time, easy to remember; warm courier delivers variations and the warehouse can't reuse yesterday's delivery.
 
 ---
 
-## Lab 2: System Prompt Sweep — "Strict vs lax delivery note"
+## Lab 2: System Prompt Sweep — "Strict vs lax shipping manifest"
 
 **Config:** `SYSTEM_PROMPT` (default: minimal pass-through)
 **What it controls:** Default system prompt the gateway prepends if the client doesn't supply one.
@@ -69,21 +69,21 @@ Cold donkey delivers the same parcel every time, easy to remember; warm donkey d
 3. Repeat for balanced and lax defaults
 
 ### Results table (fill in as you run)
-| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🫏 Donkey |
+| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🚚 Courier |
 |---|---|---|---|---|---|---|
-| strict | ___ | ___ | ___ | ___ | ___ | 🫏 A strict delivery note handed to every donkey raises the whole stable's quality floor without each client writing their own instructions. |
-| balanced | ___ | ___ | ___ | ___ | ___ | 🫏 A balanced delivery note gives the donkey room to adapt tone, trading some consistency for flexibility across varied client requests. |
-| lax | ___ | ___ | ___ | ___ | ___ | 🫏 A lax delivery note lets each donkey freelance, risking inconsistent replies and making the pigeon-hole cache nearly impossible to calibrate. |
+| strict | ___ | ___ | ___ | ___ | ___ | 🚚 A strict shipping manifest handed to every courier raises the whole service's quality floor without each client writing their own instructions. |
+| balanced | ___ | ___ | ___ | ___ | ___ | 🚚 A balanced shipping manifest gives the courier room to adapt tone, trading some consistency for flexibility across varied client requests. |
+| lax | ___ | ___ | ___ | ___ | ___ | 🚚 A lax shipping manifest lets each courier freelance, risking inconsistent replies and making the pickup locker cache nearly impossible to calibrate. |
 
 ### What we learned
 The gateway's default prompt sets the floor for every downstream app — invest here once and every client benefits.
 
-### 🫏 Donkey takeaway
-The stable manager hands every donkey a default delivery note; a strict default keeps the whole stable polite even when individual clients forget to add their own.
+### 🚚 Courier takeaway
+The gateway hands every courier a default shipping manifest; a strict default keeps the whole service polite even when individual clients forget to add their own.
 
 ---
 
-## Lab 3: Model Swap — "Which donkey is on duty?"
+## Lab 3: Model Swap — "Which courier is on duty?"
 
 **Config:** `AWS_BEDROCK_MODEL_ID` / `AZURE_OPENAI_DEPLOYMENT` / `OLLAMA_MODEL` and `ROUTING_STRATEGY`
 **What it controls:** Which provider/model the gateway routes to.
@@ -95,19 +95,19 @@ The stable manager hands every donkey a default delivery note; a strict default 
 3. Repeat for each model below; also try `ROUTING_STRATEGY=cost` to auto-pick cheapest provider
 
 ### Results table (fill in as you run)
-| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🫏 Donkey |
+| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🚚 Courier |
 |---|---|---|---|---|---|---|
-| llama3.2:1b (local) | ___ | ___ | ___ | ___ | ___ | 🫏 The 1B local barn donkey completes simple errands cheaply with no cloud fees, though it struggles with complex multi-step reasoning tasks. |
-| llama3.2 (3B, local) | ___ | ___ | ___ | ___ | ___ | 🫏 The 3B local barn donkey handles moderately complex deliveries still at zero cloud cost, offering a useful middle ground for most queries. |
-| Bedrock Claude 3.5 Sonnet | ___ | ___ | ___ | ___ | ___ | 🫏 The AWS depot's thoroughbred donkey delivers high-quality answers but logs a noticeably larger entry in the expense ledger per cargo unit. |
-| Azure GPT-4o | ___ | ___ | ___ | ___ | ___ | 🫏 The Azure hub's racehorse donkey excels at nuanced multi-step trips and is priced competitively for high-quality workloads via the Azure stable door. |
-| ROUTING_STRATEGY=cost | ___ | ___ | ___ | ___ | ___ | 🫏 The dispatch desk automatically picks the cheapest donkey available for each delivery, keeping the expense ledger lean without client involvement. |
+| llama3.2:1b (local) | ___ | ___ | ___ | ___ | ___ | 🚚 The 1B local depot courier completes simple errands cheaply with no cloud fees, though it struggles with complex multi-step reasoning tasks. |
+| llama3.2 (3B, local) | ___ | ___ | ___ | ___ | ___ | 🚚 The 3B local depot courier handles moderately complex deliveries still at zero cloud cost, offering a useful middle ground for most queries. |
+| Bedrock Claude 3.5 Sonnet | ___ | ___ | ___ | ___ | ___ | 🚚 The AWS depot's thoroughbred courier delivers high-quality answers but logs a noticeably larger entry in the expense ledger per parcel unit. |
+| Azure GPT-4o | ___ | ___ | ___ | ___ | ___ | 🚚 The Azure hub's racehorse courier excels at nuanced multi-step deliveries and is priced competitively for high-quality workloads via the Azure depot door. |
+| ROUTING_STRATEGY=cost | ___ | ___ | ___ | ___ | ___ | 🚚 The dispatch desk automatically picks the cheapest courier available for each delivery, keeping the expense ledger lean without client involvement. |
 
 ### What we learned
 Use the gateway to A/B providers without touching client code — that is the gateway's whole reason to exist. Always include a local fallback to keep dev free.
 
-### 🫏 Donkey takeaway
-The stable manager chooses which donkey to send out; clients never know whether it was the pony, the workhorse, or the racehorse.
+### 🚚 Courier takeaway
+The gateway chooses which courier to send out; clients never know whether it was the pony, the workhorse, or the racehorse.
 
 ---
 
@@ -123,17 +123,17 @@ The stable manager chooses which donkey to send out; clients never know whether 
 3. Repeat for each value below
 
 ### Results table (fill in as you run)
-| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🫏 Donkey |
+| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🚚 Courier |
 |---|---|---|---|---|---|---|
-| 256 | ___ | ___ | ___ | ___ | ___ | 🫏 A 256-unit cargo cap forces the donkey to cut replies short, saving cost but risking truncated answers that frustrate downstream clients. |
-| 1024 | ___ | ___ | ___ | ___ | ___ | 🫏 A 1024-unit cargo cap comfortably covers most queries, balancing reply completeness against per-request cost in the expense ledger. |
-| 4096 | ___ | ___ | ___ | ___ | ___ | 🫏 A 4096-unit cap lets the donkey carry a full crate, ideal for long documents but exposing the ledger to runaway bills on a single careless request. |
+| 256 | ___ | ___ | ___ | ___ | ___ | 🚚 A 256-unit parcel cap forces the courier to cut replies short, saving cost but risking truncated answers that frustrate downstream clients. |
+| 1024 | ___ | ___ | ___ | ___ | ___ | 🚚 A 1024-unit parcel cap comfortably covers most queries, balancing reply completeness against per-request cost in the expense ledger. |
+| 4096 | ___ | ___ | ___ | ___ | ___ | 🚚 A 4096-unit cap lets the courier carry a full crate, ideal for long documents but exposing the ledger to runaway bills on a single careless request. |
 
 ### What we learned
 At the gateway, max_tokens is a budget guardrail more than a quality lever. Set a hard ceiling per API key tier — clients can request less but never more.
 
-### 🫏 Donkey takeaway
-The stable manager sets the maximum crate size the donkey is allowed to carry, no matter what the client asks for.
+### 🚚 Courier takeaway
+The gateway sets the maximum crate size the courier is allowed to carry, no matter what the client asks for.
 
 ---
 
@@ -149,17 +149,17 @@ The stable manager sets the maximum crate size the donkey is allowed to carry, n
 3. Repeat for each value below; also test a time-sensitive query like "what's today's date?"
 
 ### Results table (fill in as you run)
-| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🫏 Donkey |
+| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🚚 Courier |
 |---|---|---|---|---|---|---|
-| 60s (1 min) | ___ | ___ | ___ | ___ | ___ | 🫏 A 60-second pigeon-hole shelf clears stale notes quickly, keeping answers fresh but forcing a donkey trip for nearly every minute-old query. |
-| 3600s (1 hr) | ___ | ___ | ___ | ___ | ___ | 🫏 A one-hour shelf means the dispatch desk reuses the same reply for an entire hour, cutting donkey trips dramatically for stable-knowledge questions. |
-| 86400s (1 day) | ___ | ___ | ___ | ___ | ___ | 🫏 A full-day shelf maximises cache savings but risks the pigeon-hole handing back yesterday's news for time-sensitive questions like today's date. |
+| 60s (1 min) | ___ | ___ | ___ | ___ | ___ | 🚚 A 60-second pickup locker shelf clears stale notes quickly, keeping answers fresh but forcing a delivery for nearly every minute-old query. |
+| 3600s (1 hr) | ___ | ___ | ___ | ___ | ___ | 🚚 A one-hour shelf means the dispatch desk reuses the same reply for an entire hour, cutting deliveries dramatically for static-knowledge questions. |
+| 86400s (1 day) | ___ | ___ | ___ | ___ | ___ | 🚚 A full-day shelf maximises cache savings but risks the pickup locker handing back yesterday's news for time-sensitive questions like today's date. |
 
 ### What we learned
 TTL is a freshness/cost dial. For static knowledge (translations, definitions) push TTL high; for time-sensitive queries (prices, news) keep it short or bypass cache entirely.
 
-### 🫏 Donkey takeaway
-A delivery note that says "this answer is good for 1 hour" lets the warehouse skip the trip; saying "good for a day" saves more trips but risks delivering yesterday's news.
+### 🚚 Courier takeaway
+A shipping manifest that says "this answer is good for 1 hour" lets the warehouse skip the delivery; saying "good for a day" saves more deliveries but risks delivering yesterday's news.
 
 ---
 
@@ -175,21 +175,21 @@ A delivery note that says "this answer is good for 1 hour" lets the warehouse sk
 3. Repeat for each value below
 
 ### Results table (fill in as you run)
-| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🫏 Donkey |
+| Value | Cache hit rate | Faithfulness | Latency (ms) | Cost (€) | Notes | 🚚 Courier |
 |---|---|---|---|---|---|---|
-| 0.80 | ___ | ___ | ___ | ___ | ___ | 🫏 A 0.80 threshold means the pigeon-hole treats loosely similar questions as identical, yielding high hit rates but occasionally handing back the wrong parcel. |
-| 0.92 | ___ | ___ | ___ | ___ | ___ | 🫏 The 0.92 default threshold balances cache reuse against accuracy, only matching deliveries whose GPS coordinates are very nearly the same address. |
-| 0.98 | ___ | ___ | ___ | ___ | ___ | 🫏 A 0.98 threshold means only near-identical queries reuse the cached note, making the pigeon-hole almost as quiet as if caching were disabled entirely. |
+| 0.80 | ___ | ___ | ___ | ___ | ___ | 🚚 A 0.80 threshold means the pickup locker treats loosely similar questions as identical, yielding high hit rates but occasionally handing back the wrong parcel. |
+| 0.92 | ___ | ___ | ___ | ___ | ___ | 🚚 The 0.92 default threshold balances cache reuse against accuracy, only matching deliveries whose GPS coordinates are very nearly the same address. |
+| 0.98 | ___ | ___ | ___ | ___ | ___ | 🚚 A 0.98 threshold means only near-identical queries reuse the cached note, making the pickup locker almost as quiet as if caching were disabled entirely. |
 
 ### What we learned
 Below ~0.90, semantic cache starts returning answers to *similar but different* questions — a silent quality bug. Above ~0.95, the cache barely fires. Calibrate against a paraphrase eval set.
 
-### 🫏 Donkey takeaway
+### 🚚 Courier takeaway
 A loose match means the warehouse hands over yesterday's parcel because the address looked similar; a tight match keeps the parcels sorted but the warehouse rarely reuses any.
 
 ---
 
-## Lab 7: Rate-Limit RPM Sweep — "How fast can a client knock at the stable door?"
+## Lab 7: Rate-Limit RPM Sweep — "How fast can a client knock at the depot door?"
 
 **Config:** `RATE_LIMIT_REQUESTS_PER_MINUTE` (default: `60`)
 **What it controls:** Per-API-key requests-per-minute ceiling.
@@ -201,17 +201,17 @@ A loose match means the warehouse hands over yesterday's parcel because the addr
 3. Repeat for each value below
 
 ### Results table (fill in as you run)
-| Value | 429 rate | Faithfulness | Latency p95 (ms) | Cost (€) | Notes | 🫏 Donkey |
+| Value | 429 rate | Faithfulness | Latency p95 (ms) | Cost (€) | Notes | 🚚 Courier |
 |---|---|---|---|---|---|---|
-| 10 RPM | ___ | ___ | ___ | ___ | ___ | 🫏 Ten trips per minute per courier means even a slow client will exhaust quota quickly, returning a 429 quota-used-up error after the eleventh knock. |
-| 60 RPM | ___ | ___ | ___ | ___ | ___ | 🫏 Sixty trips per minute is a comfortable quota for typical clients, keeping the stable door busy but preventing any single courier from monopolising every donkey. |
-| 600 RPM | ___ | ___ | ___ | ___ | ___ | 🫏 Six hundred trips per minute practically removes the trip quota for high-volume internal clients, shifting the cost guard to the provider tier instead. |
+| 10 RPM | ___ | ___ | ___ | ___ | ___ | 🚚 Ten deliveries per minute per courier means even a slow client will exhaust quota quickly, returning a 429 quota-used-up error after the eleventh knock. |
+| 60 RPM | ___ | ___ | ___ | ___ | ___ | 🚚 Sixty deliveries per minute is a comfortable quota for typical clients, keeping the depot door busy but preventing any single courier from monopolising every courier. |
+| 600 RPM | ___ | ___ | ___ | ___ | ___ | 🚚 Six hundred deliveries per minute practically removes the daily dispatch quota for high-volume internal clients, shifting the cost guard to the provider tier instead. |
 
 ### What we learned
 Rate limits protect the budget more than the latency. Tier them per API key (free / paid / internal) and always return useful headers (`X-RateLimit-Remaining`, `Retry-After`).
 
-### 🫏 Donkey takeaway
-The stable's front door only lets each client knock so many times per minute; otherwise one shouty client ties up every donkey and the rest of the village waits.
+### 🚚 Courier takeaway
+The gateway's front door only lets each client knock so many times per minute; otherwise one shouty client ties up every courier and the rest of the village waits.
 
 ---
 
@@ -256,21 +256,21 @@ Return strict JSON: {"answer_quality": 0.x, "routing_fit": 0.x, "cost_efficiency
 ```
 
 ### Results table (fill in as you run)
-| Question | Routed model | Rule-based faithfulness | LLM-judge answer_quality | LLM-judge routing_fit | Should have routed to | Why? | 🫏 Donkey |
+| Question | Routed model | Rule-based faithfulness | LLM-judge answer_quality | LLM-judge routing_fit | Should have routed to | Why? | 🚚 Courier |
 |---|---|---|---|---|---|---|---|
-| Q1 (Explain RAG in 2 sentences) | ___ | ___ | ___ | ___ | haiku (simple) | Sonnet would be over-spend | 🫏 Explaining RAG in two sentences is a light delivery any small donkey handles; routing it to a racehorse wastes the expense tab. |
-| Q2 (Translate "good morning" → Dutch) | ___ | ___ | ___ | ___ | haiku (trivial) | Anything bigger is wasted | 🫏 A simple phrase translation is the lightest possible cargo; the gateway should always pick the cheapest donkey rather than burn a thoroughbred on it. |
-| Q3 (17 × 23) | ___ | ___ | ___ | ___ | haiku (or tool) | LLM-judge flags Sonnet as over-spend | 🫏 Basic arithmetic is a one-step errand; routing it to the expensive Sonnet donkey is like hiring a racehorse to deliver a sticky note around the corner. |
+| Q1 (Explain RAG in 2 sentences) | ___ | ___ | ___ | ___ | haiku (simple) | Sonnet would be over-spend | 🚚 Explaining RAG in two sentences is a light delivery any small courier handles; routing it to a racehorse wastes the expense tab. |
+| Q2 (Translate "good morning" → Dutch) | ___ | ___ | ___ | ___ | haiku (trivial) | Anything bigger is wasted | 🚚 A simple phrase translation is the lightest possible parcel; the gateway should always pick the cheapest courier rather than burn a thoroughbred on it. |
+| Q3 (17 × 23) | ___ | ___ | ___ | ___ | haiku (or tool) | LLM-judge flags Sonnet as over-spend | 🚚 Basic arithmetic is a one-step errand; routing it to the expensive Sonnet courier is like hiring a racehorse to deliver a sticky note around the corner. |
 
 ### Cost comparison
-| Mode | Cost per eval | Latency added | Determinism | 🫏 Donkey |
+| Mode | Cost per eval | Latency added | Determinism | 🚚 Courier |
 |---|---|---|---|---|
-| `rule_based` | €0 | ~1ms | ✅ Same input → same score | 🫏 The rule-based clipboard costs nothing and checks each parcel instantly against a fixed tick-list, giving the same verdict for every identical delivery. |
-| `llm_judge` (Haiku) | ~$0.001 | ~500–1500ms | ❌ May vary slightly across runs | 🫏 The Haiku judge donkey reads the whole dispatch record and scores routing-fit for half a penny per trip, but occasionally grades the same delivery differently. |
-| `llm_judge` (GPT-4o) | ~$0.01 | ~1–3s | ❌ May vary | 🫏 The GPT-4o judge is a premium senior dispatcher costing a cent per review, spending one to three seconds weighing routing quality before rendering a verdict. |
+| `rule_based` | €0 | ~1ms | ✅ Same input → same score | 🚚 The rule-based clipboard costs nothing and checks each parcel instantly against a fixed tick-list, giving the same verdict for every identical delivery. |
+| `llm_judge` (Haiku) | ~$0.001 | ~500–1500ms | ❌ May vary slightly across runs | 🚚 The Haiku judge courier reads the whole dispatch record and scores routing-fit for half a penny per delivery, but occasionally grades the same delivery differently. |
+| `llm_judge` (GPT-4o) | ~$0.01 | ~1–3s | ❌ May vary | 🚚 The GPT-4o judge is a premium senior dispatcher costing a cent per review, spending one to three seconds weighing routing quality before rendering a verdict. |
 
 ### What we learned
 Rule-based eval is the right default — it's free, fast, and catches obvious failures. For a gateway, LLM-as-judge is uniquely valuable because it can score ROUTING-FIT, which rules cannot. Production pattern: run rule-based on every request, run LLM-judge on samples flagged as marginal OR where COST_USD is in the top 5% (the expensive routes are the ones worth auditing), and run a daily nightly batch over the golden dataset. Never run LLM-judge on 100% of traffic — at gateway-scale traffic, the judge cost would dwarf the routed-model cost.
 
-### 🫏 Donkey takeaway
-Rule-based eval is a clipboard-with-checkboxes the stable master uses on every parcel. LLM-as-judge is the senior dispatcher who reviews a sample of trips and notices when a racehorse was sent to deliver a postcard next door — the parcel arrived, but the stable spent ten times what it should have. The clipboard tracks delivery; the dispatcher tracks the bill.
+### 🚚 Courier takeaway
+Rule-based eval is a clipboard-with-checkboxes the depot master uses on every parcel. LLM-as-judge is the senior dispatcher who reviews a sample of deliveries and notices when a racehorse was sent to deliver a postcard next door — the parcel arrived, but the depot spent ten times what it should have. The clipboard tracks delivery; the dispatcher tracks the bill.

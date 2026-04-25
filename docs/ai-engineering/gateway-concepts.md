@@ -10,10 +10,10 @@
 - [Direct provider calls vs gateway calls](#direct-provider-calls-vs-gateway-calls)
 - [Why centralize?](#why-centralize)
 - [The four pillars](#the-four-pillars)
-  - [Pillar 1 — Routing](#pillar-1--routing)
-  - [Pillar 2 — Caching](#pillar-2--caching)
-  - [Pillar 3 — Rate Limiting](#pillar-3--rate-limiting)
-  - [Pillar 4 — Cost Tracking](#pillar-4--cost-tracking)
+ - [Pillar 1 — Routing](#pillar-1--routing)
+ - [Pillar 2 — Caching](#pillar-2--caching)
+ - [Pillar 3 — Rate Limiting](#pillar-3--rate-limiting)
+ - [Pillar 4 — Cost Tracking](#pillar-4--cost-tracking)
 - [The OpenAI-compatible interface](#the-openai-compatible-interface)
 - [Architecture mini-diagram](#architecture-mini-diagram)
 - [When NOT to use a gateway](#when-not-to-use-a-gateway)
@@ -27,7 +27,7 @@ An **LLM gateway** is a single HTTP service that sits between your applications 
 
 Think of it as a **reverse proxy specialised for LLM calls**, with bookkeeping (cost), control (rate limits), and acceleration (cache) built in.
 
-> 🫏 **Donkey analogy:** The gateway is one front door for many donkeys (LLMs) — your app asks once, it picks the right donkey and brings the answer back.
+> 🚚 **Courier:** The gateway is one front door for many couriers (LLMs) — your app asks once, it picks the right courier and brings the answer back.
 
 ---
 
@@ -36,29 +36,29 @@ Think of it as a **reverse proxy specialised for LLM calls**, with bookkeeping (
 Without a gateway, your app code directly imports each provider's SDK:
 
 ```
-┌──────────┐      boto3.invoke_model       ┌─────────────┐
-│  App A   │───────────────────────────────▶│ AWS Bedrock │
-└──────────┘                                 └─────────────┘
-┌──────────┐      openai.ChatCompletion     ┌─────────────┐
-│  App B   │───────────────────────────────▶│ Azure OAI   │
-└──────────┘                                 └─────────────┘
-┌──────────┐      httpx.post                 ┌─────────────┐
-│  App C   │───────────────────────────────▶│ Ollama      │
-└──────────┘                                 └─────────────┘
+┌──────────┐ boto3.invoke_model ┌─────────────┐
+│ App A │───────────────────────────────▶│ AWS Bedrock │
+└──────────┘ └─────────────┘
+┌──────────┐ openai.ChatCompletion ┌─────────────┐
+│ App B │───────────────────────────────▶│ Azure OAI │
+└──────────┘ └─────────────┘
+┌──────────┐ httpx.post ┌─────────────┐
+│ App C │───────────────────────────────▶│ Ollama │
+└──────────┘ └─────────────┘
 ```
 
 Each app reinvents auth, retries, cost logging, and provider switching. With a gateway:
 
 ```
-┌──────────┐                                 ┌─────────────┐
-│  App A   │──┐                            ┌▶│ AWS Bedrock │
-└──────────┘  │   POST /v1/chat/completions │ └─────────────┘
-┌──────────┐  │   (OpenAI format)            │ ┌─────────────┐
-│  App B   │──┼──▶ ┌─────────┐  ──────────────┼▶│ Azure OAI   │
-└──────────┘  │    │ Gateway │                │ └─────────────┘
-┌──────────┐  │    └─────────┘  ──────────────┼▶┌─────────────┐
-│  App C   │──┘                                 │ Ollama      │
-└──────────┘                                    └─────────────┘
+┌──────────┐ ┌─────────────┐
+│ App A │──┐ ┌▶│ AWS Bedrock │
+└──────────┘ │ POST /v1/chat/completions │ └─────────────┘
+┌──────────┐ │ (OpenAI format) │ ┌─────────────┐
+│ App B │──┼──▶ ┌─────────┐ ──────────────┼▶│ Azure OAI │
+└──────────┘ │ │ Gateway │ │ └─────────────┘
+┌──────────┐ │ └─────────┘ ──────────────┼▶┌─────────────┐
+│ App C │──┘ │ Ollama │
+└──────────┘ └─────────────┘
 ```
 
 The gateway becomes the *one place* where you wire up auth, observability, retries, fallback, caching, rate limits, and cost.
@@ -75,7 +75,7 @@ Five concrete reasons:
 4. **Rate limit per API key, per app.** Stop one runaway batch job from burning your whole monthly budget on Sonnet.
 5. **Caching across apps.** App A asks "summarise these terms" — App B asks the same thing two minutes later — App B gets a free hit from the cache. No second LLM call.
 
-> 🫏 **Donkey analogy:** The gateway is the stable's reception desk — one ledger, one quota policy, and a spare donkey ready when another is sick.
+> 🚚 **Courier:** The gateway is the dispatch centre — one ledger, one quota policy, and a spare courier ready when another is unavailable.
 
 ---
 
@@ -96,7 +96,7 @@ The gateway supports four routing strategies (selectable per deployment via `ROU
 | `cost` | Pick cheapest healthy provider per request | Bulk batch workloads where pennies add up |
 | `round-robin` | Distribute requests evenly | Load-balance across providers / spread quota |
 
-> 🫏 **Donkey analogy:** Routing picks which donkey takes the next delivery note — always one donkey, the cheapest, a backup if one is sick, or take turns.
+> 🚚 **Courier:** Routing picks which courier takes the next shipping manifest — always one courier, the cheapest, a backup if one is sick, or take turns.
 
 ### Pillar 2 — Caching
 
@@ -106,7 +106,7 @@ This gateway uses **semantic caching** — incoming prompts are embedded into ve
 
 Trade-off: setting the similarity threshold too low returns wrong answers; too high and the cache rarely hits. Typical: cosine ≥ 0.95 for chat, ≥ 0.99 for code.
 
-> 🫏 **Donkey analogy:** Semantic cache = a shelf of pre-written notes the donkey can grab when the question is similar to one already answered.
+> 🚚 **Courier:** Semantic cache = a shelf of pre-written notes the courier can grab when the question is similar to one already answered.
 
 ### Pillar 3 — Rate Limiting
 
@@ -116,7 +116,7 @@ This gateway uses a **fixed-window** limiter keyed by API key, backed by Redis (
 
 Why per API key? Because one runaway batch job should hit *its* ceiling, not take the whole gateway down for everyone.
 
-> 🫏 **Donkey analogy:** Rate limit = a cap on how many trips per minute each customer (API key) can request — others are unaffected.
+> 🚚 **Courier:** Rate limit = a cap on how many deliveries per minute each customer (API key) can request — others are unaffected.
 
 ### Pillar 4 — Cost Tracking
 
@@ -124,7 +124,7 @@ Why per API key? Because one runaway batch job should hit *its* ceiling, not tak
 
 Stored per-request in PostgreSQL (production) or in-memory (dev). Aggregated views are exposed via `/v1/usage`. Token counts come back from LiteLLM's `usage` field; price-per-1K-tokens lives in a config table per provider/model.
 
-> 🫏 **Donkey analogy:** Cost tracking is the donkey's expense tab — every trip's customer, donkey, cargo size, and price logged for the month-end report card.
+> 🚚 **Courier:** Cost tracking is the courier's expense tab — every delivery's customer, courier, token count, and price logged for the month-end report card.
 
 ---
 
@@ -144,47 +144,47 @@ Authorization: Bearer <api-key>
 Content-Type: application/json
 
 {
-  "model": "claude-sonnet",
-  "messages": [{"role": "user", "content": "Hello"}],
-  "temperature": 0.0
+ "model": "claude-sonnet",
+ "messages": [{"role": "user", "content": "Hello"}],
+ "temperature": 0.0
 }
 ```
 
 What the gateway does with `model`: looks it up in its routing config and translates to the actual provider model string (e.g. `bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0`). The caller never has to know the AWS model ID.
 
-> 🫏 **Donkey analogy:** OpenAI's request shape is the standard delivery note every customer fills out and every donkey already knows how to read.
+> 🚚 **Courier:** OpenAI's request shape is the standard shipping manifest every customer fills out and every courier already knows how to read.
 
 ---
 
 ## Architecture mini-diagram
 
 ```
-                ┌────────────────────────────────────────────┐
-                │              AI GATEWAY                    │
-                │  (FastAPI on port 8100)                    │
-                │                                            │
-   client ──▶   │  1. Auth (API key)                         │
-                │       │                                    │
-                │       ▼                                    │
-                │  2. Rate limiter ──── Redis (per-key)      │
-                │       │                                    │
-                │       ▼                                    │
-                │  3. Cache check ──── Redis (cosine sim)    │
-                │       │  (hit? → return immediately)       │
-                │       ▼                                    │
-                │  4. LiteLLM router ──── Routing strategy   │
-                │       │                                    │
-                │       ▼                                    │
-                │  5. Provider call ──── AWS / Azure / Local │
-                │       │                                    │
-                │       ▼                                    │
-                │  6. Cost tracker ──── PostgreSQL (insert)  │
-                │       │                                    │
-                │       ▼                                    │
-                │  7. Cache write ──── Redis (set)           │
-                │       │                                    │
-   ◀───── response ◀────┘                                    │
-                └────────────────────────────────────────────┘
+ ┌────────────────────────────────────────────┐
+ │ AI GATEWAY │
+ │ (FastAPI on port 8100) │
+ │ │
+ client ──▶ │ 1. Auth (API key) │
+ │ │ │
+ │ ▼ │
+ │ 2. Rate limiter ──── Redis (per-key) │
+ │ │ │
+ │ ▼ │
+ │ 3. Cache check ──── Redis (cosine sim) │
+ │ │ (hit? → return immediately) │
+ │ ▼ │
+ │ 4. LiteLLM router ──── Routing strategy │
+ │ │ │
+ │ ▼ │
+ │ 5. Provider call ──── AWS / Azure / Local │
+ │ │ │
+ │ ▼ │
+ │ 6. Cost tracker ──── PostgreSQL (insert) │
+ │ │ │
+ │ ▼ │
+ │ 7. Cache write ──── Redis (set) │
+ │ │ │
+ ◀───── response ◀────┘ │
+ └────────────────────────────────────────────┘
 ```
 
 Every request walks this pipeline once. Each step is a separately testable component with its own deep-dive doc under `docs/ai-engineering/`.
@@ -207,29 +207,29 @@ A gateway is overhead. It buys you the four pillars at the cost of:
 
 Rule of thumb: **two apps or two providers = gateway becomes worth it.**
 
-> 🫏 **Donkey analogy:** Skip the gateway if you have one donkey and one customer — only worth it once you have at least two donkeys or two customers.
+> 🚚 **Courier:** Skip the gateway if you have one courier and one customer — only worth it once you have at least two couriers or two customers.
 
 ---
 
 ## Glossary
 
-| Term | What it means | 🫏 Donkey |
+| Term | What it means | 🚚 Courier |
 | --- | --- | --- |
-| **LLM** | Large Language Model — the thing that turns prompts into text | The donkey — does the actual carrying once the dispatcher hands it the slip. |
-| **Gateway** | The proxy service in front of the LLMs (this repo) | The stable's switchboard / dispatch desk where every slip lands first. |
-| **LiteLLM** | Library that translates OpenAI-format calls into 100+ provider formats | Universal harness that fits any donkey — same reins regardless of which donkey is in it. |
-| **Provider** | A company or service that hosts an LLM (AWS Bedrock, Azure OpenAI, Ollama, …) | A stable a donkey works for — AWS depot, Azure hub, local barn. |
-| **Routing strategy** | The rule the gateway uses to pick a provider per request | The dispatcher's "which donkey gets this slip?" policy. |
-| **Fallback** | If primary provider fails, retry against the next one in a list | Backup donkey when the primary calls in sick — customer never notices. |
-| **Semantic cache** | Redis-backed cache keyed by embedding cosine similarity, not exact match | Pigeon-hole of pre-written replies — match by *meaning* of the question, not exact wording. |
-| **Cache TTL** | How long a cached entry stays valid before being evicted | How long the pre-written note is allowed to sit in the pigeon-hole before the dispatcher tosses it. |
-| **Rate limit** | Cap on requests per time window per API key | Trip quota per courier — each key gets N trips per minute, no exceptions. |
-| **API key** | The token a client sends in `Authorization: Bearer …` to identify itself | The courier's badge — the dispatcher looks at the badge to decide quota and bill the right account. |
-| **Cost tracking** | Per-request log of provider, model, tokens, and price | The leather-bound expense ledger — every trip costed and saved for the month-end report. |
-| **Token** | The unit LLMs count input + output by, billed at a $/1K rate | A cargo unit — the donkey is paid by the kilo, not by the trip. |
-| **Observability** | Logs + metrics + traces that explain what the gateway did | Stable CCTV plus tachograph — every step of every trip is timestamped and replayable. |
-| **OpenAI-compatible** | Speaks OpenAI's request/response shape so existing clients work unchanged | The industry-standard delivery slip — every customer fills it out the same way. |
-| **Round-trip latency** | Time from client request → gateway → provider → response | How long the courier waits at the front desk from handing over the slip to getting the parcel back. |
+| **LLM** | Large Language Model — the thing that turns prompts into text | The courier — does the actual carrying once the dispatcher hands it the manifest. |
+| **Gateway** | The proxy service in front of the LLMs (this repo) | the gateway's switchboard / dispatch desk where every manifest lands first. |
+| **LiteLLM** | Library that translates OpenAI-format calls into 100+ provider formats | LiteLLM adapter that fits any courier — same API interface regardless of which courier is in it. |
+| **Provider** | A company or service that hosts an LLM (AWS Bedrock, Azure OpenAI, Ollama, …) | a provider a courier works for — AWS depot, Azure hub, local environment. |
+| **Routing strategy** | The rule the gateway uses to pick a provider per request | The dispatcher's "which courier gets this manifest?" policy. |
+| **Fallback** | If primary provider fails, retry against the next one in a list | Backup courier when the primary calls in sick — customer never notices. |
+| **Semantic cache** | Redis-backed cache keyed by embedding cosine similarity, not exact match | pickup locker of pre-written replies — match by *meaning* of the question, not exact wording. |
+| **Cache TTL** | How long a cached entry stays valid before being evicted | How long the pre-written note is allowed to sit in the pickup locker before the dispatcher tosses it. |
+| **Rate limit** | Cap on requests per time window per API key | daily dispatch quota per courier — each key gets N deliveries per minute, no exceptions. |
+| **API key** | The token a client sends in `Authorization: Bearer …` to identify itself | The courier's API key — the dispatcher looks at the API key to decide quota and bill the right account. |
+| **Cost tracking** | Per-request log of provider, model, tokens, and price | The expense ledger — every delivery costed and saved for the month-end report. |
+| **Token** | The unit LLMs count input + output by, billed at a $/1K rate | A tokens — the courier is paid by the kilo, not by the delivery. |
+| **Observability** | Logs + metrics + traces that explain what the gateway did | gateway's observability stack plus tachograph — every step of every delivery is timestamped and replayable. |
+| **OpenAI-compatible** | Speaks OpenAI's request/response shape so existing clients work unchanged | The industry-standard shipping manifest — every customer fills it out the same way. |
+| **round-trip latency** | Time from client request → gateway → provider → response | How long the courier waits at the front desk from handing over the manifest to getting the parcel back. |
 
 ---
 

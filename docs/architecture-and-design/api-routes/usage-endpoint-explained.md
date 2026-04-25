@@ -1,6 +1,6 @@
 # Usage Endpoint — Deep Dive
 
-> `GET /v1/usage` — read the donkey expense ledger. Returns a per-API-key summary of requests, tokens, USD cost, cache hit rate, and breakdowns by model and provider for a chosen window.
+> `GET /v1/usage` — read the cost ledger. Returns a per-API-key summary of requests, tokens, USD cost, cache hit rate, and breakdowns by model and provider for a chosen window.
 
 > **Source file:** `src/routes/usage.py`
 >
@@ -21,13 +21,13 @@
 - [Internal Flow](#internal-flow)
 - [Curl Example](#curl-example)
 - [Error Cases](#error-cases)
-- [Donkey Explainer](#donkey-explainer)
+- [Courier Explainer](#courier-explainer)
 
 ---
 
 ## Endpoint Summary
 
-| Attribute | Value | 🫏 Donkey |
+| Attribute | Value | 🚚 Courier |
 |-----------|-------|-----------|
 | Method | `GET` | A read against the ledger; the dispatcher reads totals, never adds a row from this route. |
 | Path | `/v1/usage` | Custom gateway extension — not in the OpenAI spec — sitting next to the other `/v1` routes. |
@@ -40,7 +40,7 @@
 
 Single query parameter `period`, parsed into the `UsagePeriod` enum.
 
-| Param | Type | Required | Default | Allowed | Description | 🫏 Donkey |
+| Param | Type | Required | Default | Allowed | Description | 🚚 Courier |
 |-------|------|----------|---------|---------|-------------|-----------|
 | `period` | `UsagePeriod` (enum) | ❌ | `today` | `today`, `week`, `month` | Window over which the cost tracker rolls up rows | Sliding pane on the ledger — open it to today, the past week, or the current month before reading totals. |
 
@@ -52,16 +52,16 @@ The API key the totals belong to is taken from the `Authorization: Bearer …` h
 
 Pydantic model: `UsageResponse` wrapping a `UsageSummary`.
 
-| Field | Type | Description | 🫏 Donkey |
+| Field | Type | Description | 🚚 Courier |
 |-------|------|-------------|-----------|
 | `summary.period` | `str` | Echo of the requested period (`today` / `week` / `month`) | Confirms which pane of the ledger was opened, useful when caching the response on the client side. |
-| `summary.total_requests` | `int` | Count of trips logged for this key in the window | Total trips this courier sent through the dispatch desk in the chosen window, cache hits included. |
-| `summary.total_tokens` | `int` | Sum of `prompt_tokens + completion_tokens` across rows | Total cargo units carried — input hay plus output hay across every donkey trip the courier paid for. |
-| `summary.total_cost_usd` | `float` | Sum of `estimated_cost_usd` | The running USD bill on the courier's tab; cached trips contribute zero. |
-| `summary.cache_hit_rate` | `float` | Cached trips ÷ total trips, in `[0.0, 1.0]` | Share of the courier's trips the pigeon-hole answered without waking a donkey — higher means cheaper monthly bill. |
-| `summary.avg_latency_ms` | `float` | Mean `latency_ms` across rows | Average wall-clock time per trip; useful to spot one provider degrading the courier's experience. |
-| `summary.requests_by_model` | `dict[str,int]` | Trip count keyed by LiteLLM model id | Per-breed roster usage — which donkey breeds the courier leaned on most heavily this window. |
-| `summary.cost_by_provider` | `dict[str,float]` | USD cost keyed by provider tag (`aws`, `azure`, `local`, `cache`) | Stable-by-stable subtotal — shows whether AWS, Azure, the local barn, or the pigeon-hole carried the biggest bill. |
+| `summary.total_requests` | `int` | Count of deliveries logged for this key in the window | Total deliveries this courier sent through the dispatch desk in the chosen window, cache hits included. |
+| `summary.total_tokens` | `int` | Sum of `prompt_tokens + completion_tokens` across rows | Total tokens carried — input fuel plus output fuel across every delivery the courier paid for. |
+| `summary.total_cost_usd` | `float` | Sum of `estimated_cost_usd` | The running USD bill on the courier's tab; cached deliverys contribute zero. |
+| `summary.cache_hit_rate` | `float` | Cached deliveries ÷ total deliveries, in `[0.0, 1.0]` | Share of the courier's deliveries the pickup locker answered without waking a courier — higher means cheaper monthly bill. |
+| `summary.avg_latency_ms` | `float` | Mean `latency_ms` across rows | Average wall-clock time per delivery; useful to spot one provider degrading the courier's experience. |
+| `summary.requests_by_model` | `dict[str,int]` | Trip count keyed by LiteLLM model id | Per-breed roster usage — which model types the courier leaned on most heavily this window. |
+| `summary.cost_by_provider` | `dict[str,float]` | USD cost keyed by provider tag (`aws`, `azure`, `local`, `cache`) | Depot-by-depot subtotal — shows whether AWS, Azure, the local depot, or the pickup locker carried the biggest bill. |
 | `api_key` | `str` | First 8 chars of the caller's key + `"..."` (masked) | Receipt header showing a redacted key fingerprint so the courier knows which tab they just read. |
 
 ---
@@ -121,17 +121,17 @@ Sample response for a week of mixed traffic:
 
 ## Error Cases
 
-| Status | `error` code | When it fires | 🫏 Donkey |
+| Status | `error` code | When it fires | 🚚 Courier |
 |--------|--------------|---------------|-----------|
 | `401` | `authentication_required` | Missing Bearer header on protected path | Courier asked to read the ledger without a permission slip; gate guard sends them away before any rows are looked up. |
 | `403` | `forbidden` | Bearer token unknown | Permission slip is forged — gate guard refuses to even open the leather ledger to look for the courier's tab. |
-| `422` | (FastAPI default) | `period` query value is not in `today/week/month` | Stable manager checked the slot the courier asked to open; it isn't a real ledger pane and the request is rejected. |
+| `422` | (FastAPI default) | `period` query value is not in `today/week/month` | Gateway checked the slot the courier asked to open; it isn't a real ledger pane and the request is rejected. |
 | `500` | (default) | `cost_tracker.get_usage_summary` raised (e.g. PostgreSQL down) | Ledger book is jammed shut — the database is unreachable so the dispatcher cannot tally anything for the courier. |
 
 ---
 
-## 🫏 Donkey Explainer
+## 🚚 Courier Explainer
 
 This endpoint reads the **cost tab**: the caller asks for today, this week, or this month, and the gateway tallies the rows for that window — how many requests, how many tokens, how many USD, how often the cache answered, and a per-app subtotal — and returns the totals.
 
-Nothing is written, no donkey is dispatched, and the response includes a masked fingerprint of the caller's key so they know which tab the totals belong to. The underlying query lives in `cost_tracker.get_usage_summary`; the on-disk schema is documented in the [Cost Tracking Deep Dive](../../ai-engineering/cost-tracking-deep-dive.md).
+Nothing is written, no courier is dispatched, and the response includes a masked fingerprint of the caller's key so they know which tab the totals belong to. The underlying query lives in `cost_tracker.get_usage_summary`; the on-disk schema is documented in the [Cost Tracking Deep Dive](../../ai-engineering/cost-tracking-deep-dive.md).

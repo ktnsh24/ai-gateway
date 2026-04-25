@@ -59,14 +59,14 @@ Keys are configured via `GATEWAY_API_KEYS` (comma-separated).
 }
 ```
 
-| Field | Type | Required | Default | Description | 🫏 Donkey |
+| Field | Type | Required | Default | Description | 🚚 Courier |
 |-------|------|----------|---------|-------------|-----------|
-| `messages` | `list[Message]` | ✅ | — | Chat messages (system, user, assistant) | 🫏 The delivery note itself — a list of system and user cargo that the dispatch desk hands to the chosen donkey for this trip. |
-| `model` | `string` | ❌ | `"default"` | Model to use (or `"default"` for provider default) | 🫏 Specifies which donkey breed to request; use "default" to let the dispatch desk pick from the current available roster. |
-| `temperature` | `float` | ❌ | `0.7` | Sampling temperature (0.0–2.0) | 🫏 How creative the donkey is allowed to be — zero means safest known route, two means wildly exploratory and unpredictable delivery paths. |
-| `max_tokens` | `int` | ❌ | `1024` | Maximum tokens in response | 🫏 Sets the maximum cargo units the donkey can pack into its reply before being told to stop and return immediately to the stable. |
-| `bypass_cache` | `bool` | ❌ | `false` | 🔌 Gateway extension: skip cache | 🫏 Gateway extension telling the dispatch desk to skip the pigeon-hole entirely and send a fresh delivery note directly to the donkey. |
-| `preferred_provider` | `string` | ❌ | `null` | 🔌 Gateway extension: force provider | 🫏 Gateway extension that forces the dispatch desk to route this trip to a specific stable — AWS depot, Azure hub, or local barn. |
+| `messages` | `list[Message]` | ✅ | — | Chat messages (system, user, assistant) | 🚚 The shipping manifest itself — a list of system and user parcel that the dispatch desk hands to the chosen courier for this delivery. |
+| `model` | `string` | ❌ | `"default"` | Model to use (or `"default"` for provider default) | 🚚 Specifies which model type to request; use "default" to let the dispatch desk pick from the current available roster. |
+| `temperature` | `float` | ❌ | `0.7` | Sampling temperature (0.0–2.0) | 🚚 How creative the courier is allowed to be — zero means safest known route, two means wildly exploratory and unpredictable delivery paths. |
+| `max_tokens` | `int` | ❌ | `1024` | Maximum tokens in response | 🚚 Sets the maximum tokens the courier can pack into its reply before being told to stop and return immediately to the depot. |
+| `bypass_cache` | `bool` | ❌ | `false` | 🔌 Gateway extension: skip cache | 🚚 Gateway extension telling the dispatch desk to skip the pickup locker entirely and send a fresh shipping manifest directly to the courier. |
+| `preferred_provider` | `string` | ❌ | `null` | 🔌 Gateway extension: force provider | 🚚 Gateway extension that forces the dispatch desk to route this delivery to a specific depot — AWS depot, Azure hub, or local depot. |
 
 **Response (200):**
 
@@ -102,17 +102,17 @@ Keys are configured via `GATEWAY_API_KEYS` (comma-separated).
 }
 ```
 
-| Field | Type | Description | 🫏 Donkey |
+| Field | Type | Description | 🚚 Courier |
 |-------|------|-------------|-----------|
-| `id` | `string` | Unique completion ID | 🫏 The tachograph stamp burned onto this completed delivery — use it to cross-reference gateway logs and expense ledger entries by request. |
-| `object` | `string` | Always `"chat.completion"` | 🫏 Always "chat.completion" — confirms to the courier client that the stable's front door returned a filled delivery receipt, not an error slip. |
-| `created` | `int` | Unix timestamp | 🫏 Unix timestamp marking the exact moment the donkey handed the filled delivery note back through the stable's main delivery window. |
-| `model` | `string` | Model used (LiteLLM format: `provider/model`) | 🫏 The universal harness format — tells you exactly which donkey and which far stable handled this particular cargo run for billing purposes. |
-| `choices` | `list[Choice]` | Completion choices | 🫏 The list of filled delivery notes returned by the donkey; currently one reply per trip unless the N field is set higher in the request. |
-| `usage` | `Usage` | Token counts | 🫏 The cargo-unit tally — prompt units in plus completion units out — used to calculate the line item on the donkey expense ledger. |
-| `cost` | `CostInfo` | 🔌 Gateway extension: cost breakdown | 🫏 Gateway extension showing estimated USD cost, which provider stable, which donkey model, and whether the pigeon-hole was used instead. |
-| `cache_hit` | `bool` | 🔌 Gateway extension: was this a cache hit? | 🫏 Gateway extension flag — true means the dispatch desk found a pre-written reply in the pigeon-hole and never woke the donkey at all. |
-| `gateway_latency_ms` | `float` | 🔌 Gateway extension: end-to-end latency | 🫏 Gateway extension measuring every millisecond from stable door entry to response header, including pigeon-hole lookup and donkey round trip. |
+| `id` | `string` | Unique completion ID | 🚚 The tachograph stamp burned onto this completed delivery — use it to cross-reference gateway logs and expense ledger entries by request. |
+| `object` | `string` | Always `"chat.completion"` | 🚚 Always "chat.completion" — confirms to the courier client that the gateway's front door returned a filled delivery receipt, not an error slip. |
+| `created` | `int` | Unix timestamp | 🚚 Unix timestamp marking the exact moment the courier handed the filled shipping manifest back through the gateway's main delivery window. |
+| `model` | `string` | Model used (LiteLLM format: `provider/model`) | 🚚 The universal harness format — tells you exactly which courier and which remote depot handled this particular parcel run for billing purposes. |
+| `choices` | `list[Choice]` | Completion choices | 🚚 The list of filled shipping manifests returned by the courier; currently one reply per delivery unless the N field is set higher in the request. |
+| `usage` | `Usage` | Token counts | 🚚 The token tally — prompt units in plus completion units out — used to calculate the line item on the cost ledger. |
+| `cost` | `CostInfo` | 🔌 Gateway extension: cost breakdown | 🚚 Gateway extension showing estimated USD cost, which provider depot, which model, and whether the pickup locker was used instead. |
+| `cache_hit` | `bool` | 🔌 Gateway extension: was this a cache hit? | 🚚 Gateway extension flag — true means the dispatch desk found a pre-written reply in the pickup locker and never woke the courier at all. |
+| `gateway_latency_ms` | `float` | 🔌 Gateway extension: end-to-end latency | 🚚 Gateway extension measuring every millisecond from depot door entry to response header, including pickup locker lookup and courier round trip. |
 
 ---
 
@@ -129,10 +129,10 @@ Keys are configured via `GATEWAY_API_KEYS` (comma-separated).
 }
 ```
 
-| Field | Type | Required | Default | Description | 🫏 Donkey |
+| Field | Type | Required | Default | Description | 🚚 Courier |
 |-------|------|----------|---------|-------------|-----------|
-| `input` | `string \| list[string]` | ✅ | — | Text(s) to embed | 🫏 The text handed to the GPS-coordinate writer; one string or a list to encode multiple passages in a single stable visit. |
-| `model` | `string` | ❌ | `"default"` | Embedding model | 🫏 Which GPS-coordinate writer donkey to use; "default" lets the dispatch desk assign the registered embedding model for the current stable. |
+| `input` | `string \| list[string]` | ✅ | — | Text(s) to embed | 🚚 The text handed to the GPS-coordinate writer; one string or a list to encode multiple passages in a single call. |
+| `model` | `string` | ❌ | `"default"` | Embedding model | 🚚 Which GPS-coordinate writer courier to use; "default" lets the dispatch desk assign the registered embedding model for the current depot. |
 
 **Response (200):**
 
@@ -188,9 +188,9 @@ Keys are configured via `GATEWAY_API_KEYS` (comma-separated).
 
 ### `GET /v1/usage?period=today`
 
-| Param | Type | Default | Options | 🫏 Donkey |
+| Param | Type | Default | Options | 🚚 Courier |
 |-------|------|---------|---------|-----------|
-| `period` | `string` | `"today"` | `today`, `week`, `month`, `all` | 🫏 Slide the expense ledger window open to today, the past week, the full month, or the entire lifetime of the stable's billing records. |
+| `period` | `string` | `"today"` | `today`, `week`, `month`, `all` | 🚚 Slide the expense ledger window open to today, the past week, the full month, or the entire lifetime of the gateway's billing records. |
 
 **Response (200):**
 
@@ -258,15 +258,15 @@ All errors follow a consistent format:
 }
 ```
 
-| Status | Type | When | 🫏 Donkey |
+| Status | Type | When | 🚚 Courier |
 |--------|------|------|-----------|
-| `400` | `bad_request` | Malformed JSON, missing fields | 🫏 The delivery note arrived crumpled or missing required fields — the stable's front door rejected it before any donkey was dispatched. |
-| `401` | `authentication_error` | Invalid or missing API key | 🫏 The courier showed up without a valid permission slip — the stable's front door refused entry before the dispatch desk even saw the note. |
-| `422` | `validation_error` | Pydantic validation failure | 🫏 The delivery note was readable but the stable manager's Pydantic validator found illegal cargo — wrong type or value out of accepted range. |
-| `429` | `rate_limit_error` | Rate limit exceeded | 🫏 The courier's trip quota for the current window is used up — wait for the clock to reset before sending any more delivery notes. |
-| `500` | `internal_error` | Unexpected server error | 🫏 The stable manager tripped over something unexpected inside — not the donkey's fault, not the courier's; check the stable's internal logs. |
-| `502` | `provider_error` | LLM provider returned error | 🫏 The far stable picked up but returned an error receipt — the donkey made the trip but came back with a broken response from the provider. |
-| `503` | `service_unavailable` | All providers failed (fallback exhausted) | 🫏 Every donkey in every registered stable is sick or unreachable — the fallback chain is exhausted and no one can carry the delivery note. |
+| `400` | `bad_request` | Malformed JSON, missing fields | 🚚 The shipping manifest arrived crumpled or missing required fields — the gateway's front door rejected it before any courier was dispatched. |
+| `401` | `authentication_error` | Invalid or missing API key | 🚚 The courier showed up without a valid permission slip — the gateway's front door refused entry before the dispatch desk even saw the note. |
+| `422` | `validation_error` | Pydantic validation failure | 🚚 The shipping manifest was readable but the gateway's Pydantic validator found illegal parcel — wrong type or value out of accepted range. |
+| `429` | `rate_limit_error` | Rate limit exceeded | 🚚 The courier's daily dispatch quota for the current window is used up — wait for the clock to reset before sending any more shipping manifests. |
+| `500` | `internal_error` | Unexpected server error | 🚚 The gateway tripped over something unexpected inside — not the courier's fault, not the courier's; check the gateway's internal logs. |
+| `502` | `provider_error` | LLM provider returned error | 🚚 The remote depot picked up but returned an error receipt — the courier made the delivery but came back with a broken response from the provider. |
+| `503` | `service_unavailable` | All providers failed (fallback exhausted) | 🚚 Every courier in every registered depot is sick or unreachable — the fallback chain is exhausted and no one can carry the shipping manifest. |
 
 ---
 
@@ -276,35 +276,35 @@ These fields are **not part of the OpenAI spec** but are added by the gateway fo
 
 ### Request Extensions
 
-| Field | Type | Description | 🫏 Donkey |
+| Field | Type | Description | 🚚 Courier |
 |-------|------|-------------|-----------|
-| `bypass_cache` | `bool` | Skip cache lookup (force fresh LLM call) | 🫏 Forces the dispatch desk to skip the pigeon-hole entirely and send a fresh delivery note to the donkey even if a cached reply exists. |
-| `preferred_provider` | `string` | Override routing strategy for this request | 🫏 Overrides the routing strategy for one trip, directing the dispatch desk to a specific stable — AWS depot, Azure hub, or local barn. |
+| `bypass_cache` | `bool` | Skip cache lookup (force fresh LLM call) | 🚚 Forces the dispatch desk to skip the pickup locker entirely and send a fresh shipping manifest to the courier even if a cached reply exists. |
+| `preferred_provider` | `string` | Override routing strategy for this request | 🚚 Overrides the routing strategy for one delivery, directing the dispatch desk to a specific depot — AWS depot, Azure hub, or local depot. |
 
 ### Response Extensions
 
-| Field | Type | Description | 🫏 Donkey |
+| Field | Type | Description | 🚚 Courier |
 |-------|------|-------------|-----------|
-| `cost` | `CostInfo` | Estimated cost, provider, model, cached flag | 🫏 The per-trip line item on the expense ledger — estimated USD cost, provider stable name, model, and whether the pigeon-hole was used. |
-| `cache_hit` | `bool` | Whether the response came from cache | 🫏 Tells the courier whether the reply was a fresh donkey run or a pre-written note pulled from the pigeon-hole without waking anyone. |
-| `gateway_latency_ms` | `float` | Total gateway processing time | 🫏 Total wall-clock time from stable door arrival to response despatch, covering auth check, pigeon-hole lookup, and donkey round trip. |
+| `cost` | `CostInfo` | Estimated cost, provider, model, cached flag | 🚚 The per-trip line item on the expense ledger — estimated USD cost, provider depot name, model, and whether the pickup locker was used. |
+| `cache_hit` | `bool` | Whether the response came from cache | 🚚 Tells the courier whether the reply was a fresh courier run or a pre-written note pulled from the pickup locker without waking anyone. |
+| `gateway_latency_ms` | `float` | Total gateway processing time | 🚚 Total wall-clock time from depot door arrival to response despatch, covering auth check, pickup locker lookup, and courier round trip. |
 
 ### Response Headers
 
-| Header | Description | 🫏 Donkey |
+| Header | Description | 🚚 Courier |
 |--------|-------------|-----------|
-| `X-Request-ID` | Unique request identifier for tracing | 🫏 The unique tachograph stamp assigned to every trip through the stable, used to correlate gateway logs with provider-side records. |
-| `X-Gateway-Latency-Ms` | Processing time in milliseconds | 🫏 Total milliseconds the stable took to process this delivery, from front-door arrival to the courier receiving their filled receipt. |
+| `X-Request-ID` | Unique request identifier for tracing | 🚚 The unique tachograph stamp assigned to every delivery through the gateway, used to correlate gateway logs with provider-side records. |
+| `X-Gateway-Latency-Ms` | Processing time in milliseconds | 🚚 Total milliseconds the gateway took to process this delivery, from front-door arrival to the courier receiving their filled receipt. |
 
 ---
 
 ## 9. Cross-References
 
-| Topic | Document | 🫏 Donkey |
+| Topic | Document | 🚚 Courier |
 |-------|----------|-----------|
-| Architecture overview | [Architecture](architecture.md) | 🫏 The stable blueprint shows how the dispatch desk, pigeon-hole, trip-quota counter, and expense ledger all connect behind the front door. |
-| Pydantic model definitions | [Pydantic Models Reference](../reference/pydantic-models.md) | 🫏 The stable manager's full Pydantic model inventory lists every request and response cargo schema the front door validates on arrival. |
-| Caching behavior | [Caching Deep Dive](../ai-engineering/caching-deep-dive.md) | 🫏 The pigeon-hole deep dive explains exact-match SHA-256 keys, cosine-similarity semantic matching, and TTL eviction rules in detail. |
-| Rate limiting algorithm | [Rate Limiting Deep Dive](../ai-engineering/rate-limiting-deep-dive.md) | 🫏 The trip-quota deep dive walks through the fixed-window counter, Redis INCR commands, and the boundary-burst edge case at window edges. |
-| Cost tracking schema | [Cost Tracking Deep Dive](../ai-engineering/cost-tracking-deep-dive.md) | 🫏 The expense ledger deep dive covers the PostgreSQL schema, per-provider cost calculation, and how cached trips are flagged differently. |
-| Setup instructions | [Getting Started](../setup-and-tooling/getting-started.md) | 🫏 The getting-started guide explains how to boot the portable mini-stable kit and verify the front door is accepting delivery notes. |
+| Architecture overview | [Architecture](architecture.md) | 🚚 The infrastructure blueprint shows how the dispatch desk, pickup locker, daily-dispatch-quota counter, and expense ledger all connect behind the front door. |
+| Pydantic model definitions | [Pydantic Models Reference](../reference/pydantic-models.md) | 🚚 The gateway's full Pydantic model inventory lists every request and response parcel schema the front door validates on arrival. |
+| Caching behavior | [Caching Deep Dive](../ai-engineering/caching-deep-dive.md) | 🚚 The pickup locker deep dive explains exact-match SHA-256 keys, cosine-similarity semantic matching, and TTL eviction rules in detail. |
+| Rate limiting algorithm | [Rate Limiting Deep Dive](../ai-engineering/rate-limiting-deep-dive.md) | 🚚 The daily-dispatch-quota deep dive walks through the fixed-window counter, Redis INCR commands, and the boundary-burst edge case at window edges. |
+| Cost tracking schema | [Cost Tracking Deep Dive](../ai-engineering/cost-tracking-deep-dive.md) | 🚚 The expense ledger deep dive covers the PostgreSQL schema, per-provider cost calculation, and how cached deliverys are flagged differently. |
+| Setup instructions | [Getting Started](../setup-and-tooling/getting-started.md) | 🚚 The getting-started guide explains how to boot the portable stack and verify the front door is accepting shipping manifests. |
