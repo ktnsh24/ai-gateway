@@ -127,11 +127,11 @@ There is no `401` / `403` / `429` — the route bypasses the API-key middleware 
 
 ## 🫏 Donkey Explainer
 
-The health route is the **front-porch lamp** of the stable. A passing watchman (load balancer, ECS health check, monitoring probe) glances at it without knocking, without showing a permission slip, and without filing a delivery note. The dispatcher answers immediately and reports four things:
+The health route is the stable's "open for business" sign — a quick light-on/light-off check that load balancers, ECS health checks, and monitoring probes can hit without a key, without rate limiting, and without writing a cost line. It reports four things:
 
-1. **Lights on?** — yes, the dispatch desk is responding, with version + active stable noted.
-2. **Pigeon-hole shelf within reach?** — quick `cache.stats()` poke. Red if Redis is down; semantic cache is then degraded to a no-cache pass-through.
-3. **Expense ledger within reach?** — a tiny `get_usage_summary` query. Red if PostgreSQL is down; new cost rows buffer in memory and risk loss on restart.
-4. **Roster readable?** — the dispatcher reads off the active donkey breeds so monitoring sees which models would answer if a real call came in.
+1. **Lights on?** — the gateway is responding, with version + active stable noted.
+2. **Cache reachable?** — quick `cache.stats()` poke. Red if Redis is down; semantic cache then degrades to a no-cache pass-through.
+3. **Cost tab reachable?** — a tiny `get_usage_summary` query. Red if PostgreSQL is down; new cost rows buffer in memory and risk loss on restart.
+4. **Roster readable?** — the active donkey models so monitoring sees which would answer if a real call came in.
 
 Because the route is intentionally tolerant (it never 5xxs on a downstream blip), monitoring should treat any one of `status != healthy`, `redis_connected = false`, or `database_connected = false` as a degraded signal worth waking a human for.

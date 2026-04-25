@@ -27,7 +27,7 @@ An **LLM gateway** is a single HTTP service that sits between your applications 
 
 Think of it as a **reverse proxy specialised for LLM calls**, with bookkeeping (cost), control (rate limits), and acceleration (cache) built in.
 
-> 🫏 **Donkey analogy:** The gateway is the stable's switchboard. Customers used to wander into the stable and flag down whichever donkey they liked. Chaos. Now there's a dispatcher at one front desk: every delivery slip comes in here, the dispatcher picks the right donkey for the job, logs the trip in the ledger, and hands the parcel back through the same window. One desk, every donkey behind it.
+> 🫏 **Donkey analogy:** The gateway is one front door for many donkeys (LLMs) — your app asks once, it picks the right donkey and brings the answer back.
 
 ---
 
@@ -75,7 +75,7 @@ Five concrete reasons:
 4. **Rate limit per API key, per app.** Stop one runaway batch job from burning your whole monthly budget on Sonnet.
 5. **Caching across apps.** App A asks "summarise these terms" — App B asks the same thing two minutes later — App B gets a free hit from the cache. No second LLM call.
 
-> 🫏 **Donkey analogy:** Without the dispatcher, three couriers walk into the stable at once and all flag down the strongest donkey. With the dispatcher, jobs are queued, weighed, charged, and routed to the right donkey for the price. The accountant gets one ledger, the manager sets one quota, and if a donkey calls in sick the dispatcher silently sends another.
+> 🫏 **Donkey analogy:** The gateway is the stable's reception desk — one ledger, one quota policy, and a spare donkey ready when another is sick.
 
 ---
 
@@ -96,7 +96,7 @@ The gateway supports four routing strategies (selectable per deployment via `ROU
 | `cost` | Pick cheapest healthy provider per request | Bulk batch workloads where pennies add up |
 | `round-robin` | Distribute requests evenly | Load-balance across providers / spread quota |
 
-> 🫏 **Donkey analogy:** Routing is the dispatcher choosing which donkey takes the next slip. `single` = always Bessie. `fallback` = Bessie first, Clyde if Bessie's sick. `cost` = whichever donkey charges least per cargo unit today. `round-robin` = Bessie, Clyde, Daisy, Bessie, Clyde, Daisy.
+> 🫏 **Donkey analogy:** Routing picks which donkey takes the next delivery note — always one donkey, the cheapest, a backup if one is sick, or take turns.
 
 ### Pillar 2 — Caching
 
@@ -106,7 +106,7 @@ This gateway uses **semantic caching** — incoming prompts are embedded into ve
 
 Trade-off: setting the similarity threshold too low returns wrong answers; too high and the cache rarely hits. Typical: cosine ≥ 0.95 for chat, ≥ 0.99 for code.
 
-> 🫏 **Donkey analogy:** The pigeon-hole of pre-written replies. Before sending a donkey out, the dispatcher checks the slot: "did anyone ask something like this in the last hour?" If yes, hand over the same note. Free trip. Only the dispatcher decides what counts as "like this" — too loose and you mail the wrong reply; too strict and the slots stay empty.
+> 🫏 **Donkey analogy:** Semantic cache = a shelf of pre-written notes the donkey can grab when the question is similar to one already answered.
 
 ### Pillar 3 — Rate Limiting
 
@@ -116,7 +116,7 @@ This gateway uses a **fixed-window** limiter keyed by API key, backed by Redis (
 
 Why per API key? Because one runaway batch job should hit *its* ceiling, not take the whole gateway down for everyone.
 
-> 🫏 **Donkey analogy:** Trip quota per courier. Each API key (each courier) is allowed N trips per minute. On trip N+1 the gate slams shut and stays shut until the minute resets on the wall clock. The other couriers are unaffected — their quotas are tracked separately.
+> 🫏 **Donkey analogy:** Rate limit = a cap on how many trips per minute each customer (API key) can request — others are unaffected.
 
 ### Pillar 4 — Cost Tracking
 
@@ -124,7 +124,7 @@ Why per API key? Because one runaway batch job should hit *its* ceiling, not tak
 
 Stored per-request in PostgreSQL (production) or in-memory (dev). Aggregated views are exposed via `/v1/usage`. Token counts come back from LiteLLM's `usage` field; price-per-1K-tokens lives in a config table per provider/model.
 
-> 🫏 **Donkey analogy:** The leather-bound expense ledger. Every donkey trip recorded: who took the slip, which donkey, how heavy the parcel, what the route cost. At the end of the month the dispatcher reads it back to the manager — "Bessie carried 4M cargo units for €312, Clyde carried 1M for €18 because Clyde is the cheap donkey."
+> 🫏 **Donkey analogy:** Cost tracking is the donkey's expense tab — every trip's customer, donkey, cargo size, and price logged for the month-end report card.
 
 ---
 
@@ -152,7 +152,7 @@ Content-Type: application/json
 
 What the gateway does with `model`: looks it up in its routing config and translates to the actual provider model string (e.g. `bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0`). The caller never has to know the AWS model ID.
 
-> 🫏 **Donkey analogy:** OpenAI invented a delivery-slip template the whole industry copied. Every customer fills out the same slip, every donkey reads the same slip — the dispatcher only translates the donkey's name on the back.
+> 🫏 **Donkey analogy:** OpenAI's request shape is the standard delivery note every customer fills out and every donkey already knows how to read.
 
 ---
 
@@ -207,7 +207,7 @@ A gateway is overhead. It buys you the four pillars at the cost of:
 
 Rule of thumb: **two apps or two providers = gateway becomes worth it.**
 
-> 🫏 **Donkey analogy:** Don't hire a dispatcher if you only own one donkey and one customer. The dispatcher's salary outweighs the savings. Hire a dispatcher when there are at least two donkeys, two customers, or one of each plus a finance team that wants the ledger.
+> 🫏 **Donkey analogy:** Skip the gateway if you have one donkey and one customer — only worth it once you have at least two donkeys or two customers.
 
 ---
 

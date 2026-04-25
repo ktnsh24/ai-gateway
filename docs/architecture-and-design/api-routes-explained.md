@@ -33,7 +33,7 @@ Routes are mounted in `src/main.py` via `app.include_router(...)` for each modul
 
 Each route handler then pulls the gateway components it needs (`router`, `cache`, `rate_limiter`, `cost_tracker`) directly from `request.app.state`, which the lifespan hook in `src/main.py` populated at startup. There is no dependency-injection framework — the gateway uses FastAPI's built-in `app.state` pattern.
 
-- 🫏 **Donkey:** Two clipboards on the dispatch desk's wall — the tachograph timer and the gate guard — handle every slip before it ever reaches a window. Each window then dips into the same shared shelf of dispatcher tools to do its job.
+- 🫏 **Donkey:** Two checks run on every delivery note before any window opens it (timing and API-key auth); each window then reaches into the same shared shelf of gateway tools to do its job.
 
 ---
 

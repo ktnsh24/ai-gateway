@@ -66,8 +66,8 @@ Each component follows the **Strategy Pattern**: an abstract base class (ABC) wi
 |-----------|-----|-----------------|---------|-----------|
 | **LLM Router** | `BaseLLMRouter` | `LiteLLMRouter` | `create_router()` | 🫏 The dispatch desk that picks which donkey takes the next trip — LiteLLM provides the universal harness so any provider stable fits the same reins. |
 | **Cache** | `BaseCache` | `RedisSemanticCache`, `InMemoryCache`, `NoCache` | `create_cache()` | 🫏 The pigeon-hole shelf swaps between Redis fast shelf, in-memory sticky notes, and a no-op discard — the factory picks based on env vars at boot. |
-| **Rate Limiter** | `BaseRateLimiter` | `RedisRateLimiter`, `InMemoryRateLimiter`, `NoRateLimiter` | `create_rate_limiter()` | 🫏 The trip-quota enforcer swaps between Redis-backed distributed counting and single-process sticky notes depending on whether Redis is reachable. |
-| **Cost Tracker** | `BaseCostTracker` | `PostgresCostTracker`, `InMemoryCostTracker`, `NoCostTracker` | `create_cost_tracker()` | 🫏 The expense ledger swaps between the leather-bound PostgreSQL log, in-memory running totals, and a no-op sink used during testing. |
+| **Rate Limiter** | `BaseRateLimiter` | `RedisRateLimiter`, `InMemoryRateLimiter`, `NoRateLimiter` | `create_rate_limiter()` | 🫏 The per-minute trip cap swaps between Redis-backed distributed counting and single-process in-memory counting depending on whether Redis is reachable. |
+| **Cost Tracker** | `BaseCostTracker` | `PostgresCostTracker`, `InMemoryCostTracker`, `NoCostTracker` | `create_cost_tracker()` | 🫏 The expense tab swaps between the PostgreSQL log, in-memory running totals, and a no-op sink used during testing. |
 
 ### 2.2 File Layout
 

@@ -1,6 +1,6 @@
 # Monitoring
 
-> The control room above the dispatch desk — what we record, where it goes, and how we read it. The gateway emits structured logs, request-scoped IDs, latency timings, optional LangFuse traces, and per-request cost rows; this page is the index that ties them all together.
+> The stable's logbook — what we record, where it goes, and how we read it. The gateway emits structured logs, request-scoped IDs, latency timings, optional LangFuse traces, and per-request cost rows; this page is the index that ties them all together.
 
 > **Related docs:**
 >
@@ -112,11 +112,11 @@ The CloudWatch / Container Apps log streams are the **first** place to look for 
 
 ## 🫏 Donkey Explainer
 
-Monitoring is the **CCTV control room above the dispatch desk**, plus the **leather ledger** the dispatcher fills in on every trip. Four feeds run into the room:
+Monitoring is the stable's logbook — every trip records method, path, status, latency, tokens and cost. Four feeds power it:
 
-1. **Tachograph tape from every trip** — the request-logging middleware writes one line per request with method, path, status, latency, and a unique stamp. That tape rolls straight into the cloud's log shed (CloudWatch on AWS, the Container Apps log stream on Azure) where the operator can replay any single trip end to end.
-2. **Leather expense ledger** — every route handler calls `cost_tracker.log_request(...)`, which writes one row to PostgreSQL with the courier, donkey breed, hay tally, USD cost, and whether the pigeon-hole answered. `/v1/usage` reads this back in summary form.
-3. **Front-porch lamps** — `/health` exposes three live booleans (Redis reachable, Postgres reachable, LangFuse enabled) plus the active provider. Cloud probes pull this every few seconds.
-4. **Optional donkey CCTV** — LangFuse, off by default, gives a per-LLM-call view in a hosted UI when the operator flips the switch.
+1. **Per-request log line** — the request-logging middleware writes one line per request (method, path, status, latency, request id) into the cloud's log stream (CloudWatch on AWS, Container Apps log stream on Azure) so any single trip can be replayed end to end.
+2. **Cost tab** — every route handler calls `cost_tracker.log_request(...)`, which writes one row to PostgreSQL with the API key, model, token count, USD cost, and whether the cache answered. `/v1/usage` reads this back in summary form.
+3. **Health check** — `/health` exposes three live booleans (Redis reachable, Postgres reachable, LangFuse enabled) plus the active provider. Cloud probes pull this every few seconds.
+4. **Optional per-call trace** — LangFuse, off by default, gives a per-LLM-call view in a hosted UI when the operator flips the switch.
 
 The control room ships with no Grafana dashboards or Prometheus scrapes today; the catalogue and alert tables above describe the panels and rules that should sit on top of these existing feeds. Adding them is an extension exercise, not a refactor — every signal is already being emitted.

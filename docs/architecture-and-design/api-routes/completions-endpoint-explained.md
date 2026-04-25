@@ -157,12 +157,12 @@ A second identical call within the cache TTL returns the same body with `"cache_
 
 ## 🫏 Donkey Explainer
 
-This is the **main delivery window** at the front of the dispatch desk. A courier (the API client) walks up with a written delivery slip (the `messages` array). Five things happen, in order, before the courier walks away with a reply:
+This is the **main delivery window** of the gateway. A client hands in a delivery note (the `messages` array) and five things happen, in order, before the reply comes back:
 
-1. **Gate guard** (`APIKeyMiddleware`) reads the courier's permission slip and either waves them through or sends them home.
-2. **Trip-quota counter** (`rate_limiter`) checks the courier's tally board for this minute. One trip too many and the gate stays shut.
-3. **Pigeon-hole shelf peek** (`cache`) — the dispatcher rifles through the pre-written reply shelf. If a near-identical slip was answered recently, hand the same note back instantly and write a zero-cost line in the ledger.
-4. **Donkey dispatch** (`llm_router`) — pick a donkey from the active stable (AWS, Azure, or local barn). If the chosen donkey is sick and the routing strategy says `fallback`, harness the next one and try again.
-5. **Expense ledger entry** (`cost_tracker`) — every trip, cached or live, gets one line: courier id, donkey breed, hay (tokens), USD cost, round-trip time.
+1. **API-key auth** (`APIKeyMiddleware`) checks the caller's key and either lets them through or rejects them.
+2. **Rate limit** (`rate_limiter`) checks the per-minute cap for this key. One request too many = 429.
+3. **Cache check** (`cache`) — semantic cache lookup. If a near-identical note was answered recently, return the same reply instantly with a zero-cost line on the tab.
+4. **Donkey dispatch** (`llm_router`) — pick a donkey from the active stable (AWS, Azure, or local Ollama). On `fallback` strategy, retry the next donkey if the chosen one errors.
+5. **Cost tab entry** (`cost_tracker`) — every request, cached or live, gets one row: API key, model, tokens, USD cost, round-trip time.
 
-The reply slip handed back includes everything the courier paid for — token tally, USD estimate, whether the pigeon-hole answered, and the full wall-clock time the stable took.
+The reply includes everything the caller paid for — token counts, USD estimate, whether the cache answered, and the full wall-clock time the gateway took.

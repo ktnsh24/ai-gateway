@@ -120,6 +120,6 @@ Sample output for a `local` provider deployment:
 
 ## 🫏 Donkey Explainer
 
-This is the **roster pinned to the dispatcher's wall**. Walk up to the side window, ask "who's on shift?", and the dispatcher reads the active roster aloud — every donkey currently registered, which stable they belong to (AWS depot, Azure hub, local barn), and what cargo they are licensed to carry (chat replies vs GPS-coordinate scrolls).
+This is the **roster of available donkeys**. Ask "who's on shift?" and the gateway lists every donkey (model) currently registered, which stable they belong to (AWS, Azure, local Ollama), and what cargo they carry (chat replies vs embeddings).
 
-It is read-only and cheap. No donkey is woken, no pigeon-hole is opened, and no line gets written in the expense ledger. It exists so couriers — and OpenAI-shaped client libraries — can discover what they are allowed to ask for before sending a real delivery slip to the [completions](completions-endpoint-explained.md) or [embeddings](embeddings-endpoint-explained.md) windows.
+It is read-only and cheap: no donkey is woken, no cache is opened, and no line is written to the cost tab. It exists so clients — and OpenAI-shaped libraries — can discover what they may ask for before sending a real delivery note to the [completions](completions-endpoint-explained.md) or [embeddings](embeddings-endpoint-explained.md) endpoints.

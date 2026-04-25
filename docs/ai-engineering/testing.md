@@ -60,7 +60,7 @@ poetry run pytest tests/test_integration.py -v -k "Pipeline"
 | `test_health.py` | 11 | Health endpoint, models list, usage endpoint | 🫏 Checks that the "is the donkey awake?" endpoint returns healthy, lists the roster, and opens the expense ledger window correctly. |
 | `test_completions.py` | 11 | Chat completions: pipeline, cache hit/miss, rate limit, validation | 🫏 Exercises the main delivery window — full dispatch pipeline, pigeon-hole hit and miss, trip quota rejection, and malformed delivery notes. |
 | `test_cache.py` | 9 | InMemoryCache: hit/miss, TTL, stats, invalidation; NoCache | 🫏 Pokes the in-memory pigeon-hole directly — verifies replies land and return, TTL eviction fires on time, and NoCache never stores anything. |
-| `test_rate_limiter.py` | 8 | InMemoryRateLimiter: allow/reject, window reset, separate keys; NoRateLimiter | 🫏 Fires requests at the trip-quota counter — confirms allow and reject behaviour, window reset, and that separate courier keys stay independent. |
+| `test_rate_limiter.py` | 8 | InMemoryRateLimiter: allow/reject, window reset, separate keys; NoRateLimiter | 🫏 Fires requests at the rate-limit cap — confirms allow and reject behaviour, window reset, and that separate API keys stay independent. |
 | `test_cost_tracker.py` | 7 | InMemoryCostTracker: log/retrieve, aggregation, breakdown; NoCostTracker | 🫏 Writes fake cargo-unit tallies to the in-memory expense ledger and checks that aggregation and per-provider breakdowns are accurate. |
 
 ### Integration Tests (1 file, 22 tests)

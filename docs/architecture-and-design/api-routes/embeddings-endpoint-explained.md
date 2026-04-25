@@ -132,8 +132,8 @@ The final `jq` pipe prints the embedding dimensionality (e.g. `768` for `nomic-e
 
 ## 🫏 Donkey Explainer
 
-Think of the embeddings endpoint as the **GPS-coordinate writer** at the side window of the dispatch desk. The courier brings text — a sentence, a page, a stack of paragraphs — and walks away with a tightly-rolled scroll of numbers (the vector) for each one.
+The embeddings endpoint is the **GPS-coordinate writer**: hand it text and get back the vector (the GPS coordinates) for each input.
 
-Why no pigeon-hole shelf here? Because the embedding output **is what fills the pigeon-hole shelf in the first place**. Caching the cache-key would be circular. Every trip wakes the coordinate-writer, runs the text through, and writes a fresh scroll.
+Why no cache here? Because embedding output **is what fills the cache in the first place** — caching the cache-key would be circular. Every request runs the text through fresh.
 
-The gate guard (auth) and trip-quota counter (rate limit) still run, and every embedding trip still gets a line in the expense ledger so you can see how much of your monthly hay budget went to coordinate writing versus actual delivery work.
+Auth and rate limiting still run, and every embedding request still gets a line on the cost tab so you can see how much of your monthly budget went to embeddings versus chat completions.

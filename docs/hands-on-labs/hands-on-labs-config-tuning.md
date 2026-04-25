@@ -258,8 +258,8 @@ Return strict JSON: {"answer_quality": 0.x, "routing_fit": 0.x, "cost_efficiency
 ### Results table (fill in as you run)
 | Question | Routed model | Rule-based faithfulness | LLM-judge answer_quality | LLM-judge routing_fit | Should have routed to | Why? | 🫏 Donkey |
 |---|---|---|---|---|---|---|---|
-| Q1 (Explain RAG in 2 sentences) | ___ | ___ | ___ | ___ | haiku (simple) | Sonnet would be over-spend | 🫏 Explaining RAG in two sentences is a straightforward delivery any small barn donkey handles; routing it to a racehorse wastes the expense ledger. |
-| Q2 (Translate "good morning" → Dutch) | ___ | ___ | ___ | ___ | haiku (trivial) | Anything bigger is wasted | 🫏 A simple phrase translation is the lightest possible cargo; the dispatch desk should always pick the cheapest donkey rather than burn a thoroughbred on it. |
+| Q1 (Explain RAG in 2 sentences) | ___ | ___ | ___ | ___ | haiku (simple) | Sonnet would be over-spend | 🫏 Explaining RAG in two sentences is a light delivery any small donkey handles; routing it to a racehorse wastes the expense tab. |
+| Q2 (Translate "good morning" → Dutch) | ___ | ___ | ___ | ___ | haiku (trivial) | Anything bigger is wasted | 🫏 A simple phrase translation is the lightest possible cargo; the gateway should always pick the cheapest donkey rather than burn a thoroughbred on it. |
 | Q3 (17 × 23) | ___ | ___ | ___ | ___ | haiku (or tool) | LLM-judge flags Sonnet as over-spend | 🫏 Basic arithmetic is a one-step errand; routing it to the expensive Sonnet donkey is like hiring a racehorse to deliver a sticky note around the corner. |
 
 ### Cost comparison

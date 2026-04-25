@@ -144,13 +144,13 @@ A failed deploy never leaves a half-deployed image without a Terraform record, b
 
 ## 🫏 Donkey Explainer
 
-CI/CD is the **robot stable hand**. On every code push it runs a fixed report-card routine — collar inspection (Ruff), dry-run shift in an empty stable (`pytest` with in-memory backends), and a uniform fitting (`docker build`). A red mark anywhere on the card stops the merge.
+CI/CD is the **robot stable hand**. On every code push it runs a fixed report-card routine — lint (Ruff), test (`pytest` with in-memory backends), and image build (`docker build`). A red mark anywhere stops the merge.
 
-Deploys are deliberately a separate, **manual** lever. An operator hands the robot hand a deploy ticket that says either "AWS dev/stg" or "Azure dev/stg". The hand:
+Deploys are deliberately a separate, **manual** lever. An operator hands the robot stable hand a deploy ticket that says either "AWS dev/stg" or "Azure dev/stg". The hand:
 
 1. flashes a temporary OIDC badge at the chosen cloud (no permanent keys in the repo),
-2. hangs a freshly built uniform in the right locker (ECR or ACR),
-3. re-reads the blueprints (`terraform apply`) so the stable layout matches whatever the current HCL says,
-4. walks into the dispatch shed and tells the crew to swap into the new uniform mid-shift.
+2. pushes the freshly built image to the right registry (ECR or ACR),
+3. re-applies the stable blueprints (`terraform apply`) so the stable layout matches the current HCL,
+4. tells the running gateway service to roll over to the new image.
 
-Production is intentionally not on the dropdown — anyone wanting a production shift has to edit the rota by hand. That, plus the €5 budget killer, keeps a single accidental click from running up a real bill.
+Production is intentionally not on the dropdown — anyone wanting a production deploy has to edit the workflow by hand. That, plus the €5 budget killer, keeps a single accidental click from running up a real bill.

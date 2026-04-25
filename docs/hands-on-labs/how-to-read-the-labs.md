@@ -41,7 +41,7 @@ The gateway labs are **NOT one lab per metric**. They are **one lab per knob**, 
 
 So when Lab 2 reports `cache_hit=true, latency=5ms` and Lab 3 reports `error_rate=37%, latency=2ms`, those numbers exist because that's how we tell whether **turning that knob** improved the system or made it worse than the Lab 1 baseline. **The ruler doesn't change between labs — only the knob you're turning does.**
 
-> 🫏 **Donkey way:** the report card always grades the same five subjects (was it fast? did the pigeon-hole hit? did the trip cost more or less? were any couriers turned away? how many trips per minute did we manage?). Each lab is a different lesson plan — the report card is how you know the lesson worked.
+> 🫏 **Donkey way:** the report card always grades the same five subjects — speed, cache hits, cost, rejected requests, and throughput. Each lab is a different lesson plan for those same subjects.
 
 ---
 
@@ -59,7 +59,7 @@ Memorise these once and the labs feel half as long.
 
 There is no single "overall score" like in rag-chatbot — the gateway is judged on a *trade-off*, not a composite. A high cache-hit rate is great UNLESS the threshold is so loose you're returning wrong answers. A low cost is great UNLESS error rate jumped because you starved the provider with too tight a rate limit. **Always read at least two of the five together.**
 
-> 🫏 **Donkey way:** never read one column of the tachograph in isolation. Fast trips with empty parcels are just as bad as slow trips with full ones. Speed, weight, fuel cost, complaints, trips-per-shift — read them as a row, not a column.
+> 🫏 **Donkey way:** read the report card as a row, not a column — speed, cargo weight, cost, complaints, and trips-per-shift only make sense together.
 
 ---
 
@@ -145,7 +145,7 @@ The single-sentence summary of every gateway lab. Bookmark this table.
 
 > 🫏 **Final donkey wisdom:** every gateway lab is one of these two questions, dressed differently:
 >
-> - "I changed knob X. Did the pigeon-hole hit more, or did the donkey get faster, or did the bill go down?" (Cache, TTL, similarity, model swap, cost routing)
-> - "I changed knob X. Did anyone get turned away, did the gate slam, did a backup donkey have to step in?" (Rate limit, fallback, max_tokens truncation)
+> - "I changed knob X. Did the cache hit more, did the donkey get faster, or did the bill go down?" (Cache, TTL, similarity, model swap, cost routing)
+> - "I changed knob X. Did anyone get rate-limited, did fallback kick in, did a backup donkey have to step in?" (Rate limit, fallback, max_tokens truncation)
 >
 > Once you see this, the labs stop feeling repetitive. They become a series of small, controlled experiments — exactly what production AI engineering actually is.

@@ -163,7 +163,7 @@ Rate limiting uses the same Redis instance as the cache — no additional cost.
 
 | Decision | Chosen | Alternative | Why chosen wins | 🫏 Donkey |
 |---|---|---|---|---|
-| Gateway framework | FastAPI (custom) | Kong/Tyk/AWS API Gateway | Full control, LLM-specific features, learning value | 🫏 Building the dispatch desk by hand teaches pigeon-holes, expense ledgers, and trip quotas — renting Kong teaches none of those skills. |
+| Gateway framework | FastAPI (custom) | Kong/Tyk/AWS API Gateway | Full control, LLM-specific features, learning value | 🫏 Building the stable's reception desk by hand teaches caching, cost tabs, and rate limits — renting Kong teaches none of those skills. |
 | Cache | Redis (semantic) | None / DynamoDB | ~30% token savings, sub-ms lookup | 🫏 The fast pigeon-hole shelf saves thirty percent of cargo unit costs and returns pre-written replies in under a millisecond. |
 | Cost tracking | PostgreSQL (custom) | CloudWatch Metrics | Per-request granularity, queryable dashboards | 🫏 The custom leather-bound ledger records every cargo unit per donkey per trip; CloudWatch only knows aggregate stable-level totals. |
 | Rate limiting | Redis (per-key) | Bedrock Guardrails | Multi-provider, per-API-key | 🫏 The pigeon-hole shelf doubles as a trip quota enforcer for every courier key across all stables — Guardrails only guards one depot. |

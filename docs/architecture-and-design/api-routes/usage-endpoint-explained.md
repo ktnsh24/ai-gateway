@@ -132,6 +132,6 @@ Sample response for a week of mixed traffic:
 
 ## 🫏 Donkey Explainer
 
-This endpoint is the **expense-ledger reading window**. The courier walks up, hands over their permission slip, and asks the dispatcher to open the leather-bound ledger to today, this week, or this month. The dispatcher tallies the rows under that pane — how many trips, how much hay was chewed, how much USD piled up, how often the pigeon-hole answered instead of waking a donkey, and a per-stable subtotal — and reads the totals back over the counter.
+This endpoint reads the **cost tab**: the caller asks for today, this week, or this month, and the gateway tallies the rows for that window — how many requests, how many tokens, how many USD, how often the cache answered, and a per-app subtotal — and returns the totals.
 
-Nothing is written, no donkey is dispatched, and the response includes a masked fingerprint of the courier's key so they know which tab the totals belong to. The underlying query lives in `cost_tracker.get_usage_summary`; the on-disk schema is documented in the [Cost Tracking Deep Dive](../../ai-engineering/cost-tracking-deep-dive.md).
+Nothing is written, no donkey is dispatched, and the response includes a masked fingerprint of the caller's key so they know which tab the totals belong to. The underlying query lives in `cost_tracker.get_usage_summary`; the on-disk schema is documented in the [Cost Tracking Deep Dive](../../ai-engineering/cost-tracking-deep-dive.md).
