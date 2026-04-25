@@ -275,21 +275,21 @@ curl -w "\n  DNS: %{time_namelookup}s\n  Connect: %{time_connect}s\n  TTFB: %{ti
 
 ### Expected Latencies
 
-| Component | Expected | If Slow |
-|-----------|----------|---------|
-| Health check | <10ms | Database connectivity |
-| Cache hit | <10ms | Redis connection slow |
-| Cache miss (LLM) | 500ms-5s | Provider latency (normal) |
-| Rate limit check | <1ms | Redis connection slow |
-| Cost log | <5ms | PostgreSQL slow |
+| Component | Expected | If Slow | 🫏 Donkey |
+|-----------|----------|---------|-----------|
+| Health check | <10ms | Database connectivity | 🫏 The "is the donkey awake?" check clears the stable gate in under 10 ms when all barn doors are open. |
+| Cache hit | <10ms | Redis connection slow | 🫏 The fast pigeon-hole shelf returns a pre-written reply in under 10 ms when Redis is humming along smoothly. |
+| Cache miss (LLM) | 500ms-5s | Provider latency (normal) | 🫏 When no pre-written reply exists, the delivery note goes to the donkey, taking 500 ms–5 s for a fresh run. |
+| Rate limit check | <1ms | Redis connection slow | 🫏 Checking whether the courier still has trips left in their per-key quota takes under 1 ms against the fast pigeon-hole shelf. |
+| Cost log | <5ms | PostgreSQL slow | 🫏 Scribbling the cargo-unit tally into the leather-bound expense ledger takes under 5 ms when PostgreSQL is healthy. |
 
 ---
 
 ## 6. Cross-References
 
-| Topic | Document |
-|-------|----------|
-| Getting started | [Getting Started](getting-started.md) |
-| Docker setup | [Docker Compose Guide](docker-compose-guide.md) |
-| Architecture | [Architecture](../architecture-and-design/architecture.md) |
-| API specification | [API Contract](../architecture-and-design/api-contract.md) |
+| Topic | Document | 🫏 Donkey |
+|-------|----------|-----------|
+| Getting started | [Getting Started](getting-started.md) | 🫏 The orientation pack that gets a new stable hand from zero to dispatching their first donkey in under five minutes. |
+| Docker setup | [Docker Compose Guide](docker-compose-guide.md) | 🫏 The portable mini-stable kit guide showing how app, Redis shelf, and PostgreSQL ledger containers start together. |
+| Architecture | [Architecture](../architecture-and-design/architecture.md) | 🫏 The full stable blueprint mapping every donkey path from the front door through the GPS warehouse and back. |
+| API specification | [API Contract](../architecture-and-design/api-contract.md) | 🫏 The official delivery contract listing every route, payload shape, and error code the dispatch desk will accept. |

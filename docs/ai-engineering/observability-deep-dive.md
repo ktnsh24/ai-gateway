@@ -41,14 +41,14 @@ Request → [Logging Middleware] → [Auth Middleware] → [Route Handler]
 
 ### Components
 
-| Component | What | Where |
-|-----------|------|-------|
-| Request Logging | Method, path, status, timing | `middleware/logging.py` |
-| Request IDs | Unique trace ID per request | `middleware/logging.py` |
-| Auth Logging | Authentication success/failure | `middleware/auth.py` |
-| Cost Logging | Per-request cost to PostgreSQL | `gateway/cost_tracker.py` |
-| LangFuse | LLM-specific tracing (optional) | `main.py` |
-| Health Check | Component status monitoring | `routes/health.py` |
+| Component | What | Where | 🫏 Donkey |
+|-----------|------|-------|-----------|
+| Request Logging | Method, path, status, timing | `middleware/logging.py` | 🫏 The stable's CCTV records every trip's method, path, and status code so nothing gets lost in the haystack. |
+| Request IDs | Unique trace ID per request | `middleware/logging.py` | 🫏 Each trip gets a unique tachograph stamp so you can trace one donkey's journey end to end across all log lines. |
+| Auth Logging | Authentication success/failure | `middleware/auth.py` | 🫏 The gatekeeper logs every accepted or rejected permission slip, creating a full audit trail at the stable's front door. |
+| Cost Logging | Per-request cost to PostgreSQL | `gateway/cost_tracker.py` | 🫏 Every donkey trip's cargo cost gets written into the leather-bound PostgreSQL expense ledger for later billing review. |
+| LangFuse | LLM-specific tracing (optional) | `main.py` | 🫏 Optional CCTV upgrade that records which donkey carried what delivery note and exactly how many cargo units it consumed. |
+| Health Check | Component status monitoring | `routes/health.py` | 🫏 The "is the donkey awake?" check polls every stable component and reports whether the dispatch desk is ready to route. |
 
 ---
 
@@ -150,27 +150,27 @@ logging.basicConfig(
 
 ### Log Levels
 
-| Level | When | Example |
-|-------|------|---------|
-| `DEBUG` | Detailed internal state | Cache key computation, embedding values |
-| `INFO` | Normal operations | Request start/complete, cache hit, LLM call |
-| `WARNING` | Degraded but working | Redis unavailable → fallback to in-memory |
-| `ERROR` | Request failure | LLM provider error, database connection failure |
-| `CRITICAL` | System failure | All providers down, app startup failure |
+| Level | When | Example | 🫏 Donkey |
+|-------|------|---------|-----------|
+| `DEBUG` | Detailed internal state | Cache key computation, embedding values | 🫏 Scribbles the most granular stable notes — cache key hashes and embedding coordinates only seen when debugging a confused donkey. |
+| `INFO` | Normal operations | Request start/complete, cache hit, LLM call | 🫏 Standard tachograph entry for each trip — donkey left, donkey returned, pigeon-hole checked, cargo units counted and logged. |
+| `WARNING` | Degraded but working | Redis unavailable → fallback to in-memory | 🫏 The fast pigeon-hole shelf went offline, so the dispatch desk switched to sticky-note fallback but kept accepting delivery notes. |
+| `ERROR` | Request failure | LLM provider error, database connection failure | 🫏 A donkey returned empty — either the far stable refused the trip or the leather-bound expense ledger database connection snapped. |
+| `CRITICAL` | System failure | All providers down, app startup failure | 🫏 Every donkey in the stable is sick or the stable manager crashed on startup — nothing is moving through the dispatch desk at all. |
 
 ### Key Log Points
 
-| Location | Level | Message |
-|----------|-------|---------|
-| `middleware/logging.py` | INFO | Request started/completed |
-| `middleware/auth.py` | WARNING | Authentication failure |
-| `gateway/router.py` | INFO | LLM call to provider |
-| `gateway/router.py` | WARNING | Provider failed, trying fallback |
-| `gateway/cache.py` | INFO | Cache hit/miss |
-| `gateway/cache.py` | WARNING | Redis unavailable |
-| `gateway/rate_limiter.py` | WARNING | Rate limit exceeded |
-| `gateway/cost_tracker.py` | INFO | Usage logged |
-| `gateway/cost_tracker.py` | ERROR | PostgreSQL insert failed |
+| Location | Level | Message | 🫏 Donkey |
+|----------|-------|---------|-----------|
+| `middleware/logging.py` | INFO | Request started/completed | 🫏 The tachograph stamps every trip in and out, recording the donkey's departure time and the final status code returned. |
+| `middleware/auth.py` | WARNING | Authentication failure | 🫏 The gatekeeper logged a rejected permission slip — an unknown courier tried to slip through the stable's front door uninvited. |
+| `gateway/router.py` | INFO | LLM call to provider | 🫏 The dispatch desk logs which donkey got the next trip and which far stable — AWS depot, Azure hub, or local barn — it was routed to. |
+| `gateway/router.py` | WARNING | Provider failed, trying fallback | 🫏 Primary donkey is sick, so the dispatch desk is handing the delivery note to the backup donkey in the fallback stable instead. |
+| `gateway/cache.py` | INFO | Cache hit/miss | 🫏 The dispatch desk checked the pigeon-hole — either a pre-written reply was found instantly or the donkey had to make a fresh trip. |
+| `gateway/cache.py` | WARNING | Redis unavailable | 🫏 The fast pigeon-hole shelf is offline; the dispatch desk fell back to scribbled sticky notes on the in-memory board instead. |
+| `gateway/rate_limiter.py` | WARNING | Rate limit exceeded | 🫏 This courier has burned through their trip quota for the current window — no more deliveries until the clock resets in the next minute. |
+| `gateway/cost_tracker.py` | INFO | Usage logged | 🫏 One cargo-unit tally was successfully written into the leather-bound expense ledger for this provider's billing record. |
+| `gateway/cost_tracker.py` | ERROR | PostgreSQL insert failed | 🫏 The expense ledger is locked or unreachable — this donkey trip's cargo costs will not appear in the provider billing report. |
 
 ---
 
@@ -222,13 +222,13 @@ LANGFUSE_HOST=http://localhost:3000
 
 ### What LangFuse Tracks
 
-| Metric | Source | Value |
-|--------|--------|-------|
-| Traces | Each API request | Full request lifecycle |
-| Generations | LLM calls | Model, tokens, latency |
-| Scores | Response quality | Optional feedback loop |
-| Costs | Token pricing | Per-generation cost |
-| Prompts | System/user messages | Prompt versioning |
+| Metric | Source | Value | 🫏 Donkey |
+|--------|--------|-------|-----------|
+| Traces | Each API request | Full request lifecycle | 🫏 One row in the CCTV timeline per API request, showing the full journey from stable door arrival to delivery receipt and back. |
+| Generations | LLM calls | Model, tokens, latency | 🫏 Each individual donkey call is recorded with the model name, cargo-unit count, and how many milliseconds the donkey actually took. |
+| Scores | Response quality | Optional feedback loop | 🫏 Optional quality ratings scribbled on the returned delivery note to evaluate whether the donkey answered the question correctly. |
+| Costs | Token pricing | Per-generation cost | 🫏 Cargo-unit pricing is tallied per donkey call so the expense ledger shows a real-time cost-per-generation breakdown by provider. |
+| Prompts | System/user messages | Prompt versioning | 🫏 Every delivery note template is versioned in LangFuse so you can compare which instructions produced better donkey responses over time. |
 
 ### LangFuse Dashboard
 
@@ -289,11 +289,11 @@ async def health_check(request: Request):
 
 ### Health States
 
-| State | Meaning | HTTP Status |
-|-------|---------|-------------|
-| `healthy` | All components working | 200 |
-| `degraded` | Some components down (Redis/PG) | 200 |
-| `unhealthy` | LLM router unavailable | 503 |
+| State | Meaning | HTTP Status | 🫏 Donkey |
+|-------|---------|-------------|-----------|
+| `healthy` | All components working | 200 | 🫏 All donkeys are awake, the fast pigeon-hole shelf is connected, and the leather-bound expense ledger is accepting new entries. |
+| `degraded` | Some components down (Redis/PG) | 200 | 🫏 The dispatch desk is still routing trips but the pigeon-hole shelf or expense ledger is temporarily disconnected or unreachable. |
+| `unhealthy` | LLM router unavailable | 503 | 🫏 No donkeys are available at all — the LLM router is offline and the stable returns 503 to every caller at the front door. |
 
 ---
 
@@ -324,33 +324,33 @@ From `infra/azure/main.tf`:
 
 ### Alerts to Configure
 
-| Metric | Threshold | Action |
-|--------|-----------|--------|
-| Error rate | > 5% | Page on-call |
-| P99 latency | > 10s | Investigate provider |
-| Cache hit rate | < 10% | Review cache config |
-| Cost/hour | > $50 | Alert + review routing |
-| Redis memory | > 80% | Scale or evict |
+| Metric | Threshold | Action | 🫏 Donkey |
+|--------|-----------|--------|-----------|
+| Error rate | > 5% | Page on-call | 🫏 More than five in every hundred deliveries are coming back failed — page the on-call stable master to investigate immediately. |
+| P99 latency | > 10s | Investigate provider | 🫏 The slowest one-percent of donkeys are taking over ten seconds per trip — investigate which far stable is causing the delays. |
+| Cache hit rate | < 10% | Review cache config | 🫏 Fewer than one in ten questions matched a pre-written reply in the pigeon-hole — review the TTL setting and cosine-similarity threshold. |
+| Cost/hour | > $50 | Alert + review routing | 🫏 The donkey expense ledger is charging over fifty dollars per hour — alert the team and review which provider stable is overspending. |
+| Redis memory | > 80% | Scale or evict | 🫏 The fast pigeon-hole shelf is more than eighty percent full — scale it up or configure eviction before cache misses start spiking. |
 
 ---
 
 ## 9. Certification Relevance
 
-| Cert Topic | Connection |
-|------------|------------|
-| **AWS SAA-C03: CloudWatch** | Logging, metrics, alarms |
-| **AWS SAA-C03: X-Ray** | Request tracing (X-Request-ID pattern) |
-| **AZ-305: Azure Monitor** | Logging, metrics, diagnostics |
-| **AZ-305: Application Insights** | Request tracing, performance |
+| Cert Topic | Connection | 🫏 Donkey |
+|------------|------------|-----------|
+| **AWS SAA-C03: CloudWatch** | Logging, metrics, alarms | 🫏 CloudWatch is the AWS stable CCTV — it collects donkey-trip logs, raises cost alarms, and stores tachograph metrics for the exam. |
+| **AWS SAA-C03: X-Ray** | Request tracing (X-Request-ID pattern) | 🫏 X-Ray is the AWS tachograph that traces each donkey trip across services, mirroring the X-Request-ID pattern used throughout the gateway. |
+| **AZ-305: Azure Monitor** | Logging, metrics, diagnostics | 🫏 Azure Monitor is the Azure stable CCTV — it ingests container logs, Redis metrics, and diagnostic traces for the AZ-305 exam. |
+| **AZ-305: Application Insights** | Request tracing, performance | 🫏 Application Insights is Azure's tachograph for tracing donkey trips end-to-end across microservices and measuring delivery performance. |
 
 ---
 
 ## 10. Cross-References
 
-| Topic | Document |
-|-------|----------|
-| Architecture overview | [Architecture](../architecture-and-design/architecture.md) |
-| Cost tracking dashboard | [Cost Tracking Deep Dive](cost-tracking-deep-dive.md) |
-| Auth middleware | [API Contract](../architecture-and-design/api-contract.md) |
-| AWS infrastructure | [Terraform Guide](../setup-and-tooling/terraform-guide.md) |
-| Docker setup (LangFuse) | [Docker Compose Guide](../setup-and-tooling/docker-compose-guide.md) |
+| Topic | Document | 🫏 Donkey |
+|-------|----------|-----------|
+| Architecture overview | [Architecture](../architecture-and-design/architecture.md) | 🫏 See how the full stable switchboard connects every donkey, pigeon-hole shelf, and expense ledger in one system-context diagram. |
+| Cost tracking dashboard | [Cost Tracking Deep Dive](cost-tracking-deep-dive.md) | 🫏 The leather-bound expense ledger deep dive shows how every donkey trip's cargo cost is recorded, queried, and surfaced to callers. |
+| Auth middleware | [API Contract](../architecture-and-design/api-contract.md) | 🫏 The permission-slip rulebook explains exactly how the stable's front door validates API keys for incoming couriers at the gate. |
+| AWS infrastructure | [Terraform Guide](../setup-and-tooling/terraform-guide.md) | 🫏 Stable blueprints in Terraform provision the ECS Fargate box, ElastiCache pigeon-hole shelf, and RDS expense ledger on AWS. |
+| Docker setup (LangFuse) | [Docker Compose Guide](../setup-and-tooling/docker-compose-guide.md) | 🫏 The portable mini-stable kit guide shows how to spin up the optional LangFuse CCTV upgrade with a single Docker Compose profile flag. |

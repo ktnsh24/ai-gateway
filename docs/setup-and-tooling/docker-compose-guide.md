@@ -41,12 +41,12 @@ docker compose down -v
 
 ## 2. Services Overview
 
-| Service | Image | Port | Purpose |
-|---------|-------|------|---------|
-| `app` | Build from Dockerfile | 8100 | AI Gateway API |
-| `redis` | `redis:7-alpine` | 6379 | Semantic cache + rate limiting |
-| `pg` | `postgres:16-alpine` | 5432 | Cost tracking (usage_logs table) |
-| `langfuse` | `langfuse/langfuse:2` | 3000 | LLM observability (optional) |
+| Service | Image | Port | Purpose | 🫏 Donkey |
+|---------|-------|------|---------|-----------|
+| `app` | Build from Dockerfile | 8100 | AI Gateway API | 🫏 The stable manager listening on door 8100 — every cart pulls up here before any donkey is dispatched on a trip. |
+| `redis` | `redis:7-alpine` | 6379 | Semantic cache + rate limiting | 🫏 The fast pigeon-hole shelf on door 6379 storing pre-written replies and enforcing each courier's per-key trip quota. |
+| `pg` | `postgres:16-alpine` | 5432 | Cost tracking (usage_logs table) | 🫏 The leather-bound expense ledger on door 5432 where every cargo-unit cost is permanently recorded per request. |
+| `langfuse` | `langfuse/langfuse:2` | 3000 | LLM observability (optional) | 🫏 The optional stable CCTV dashboard on door 3000 that records every donkey journey for replay and cost analysis. |
 
 ### Network
 
@@ -299,10 +299,10 @@ lsof -i :8100
 
 ## 7. Cross-References
 
-| Topic | Document |
-|-------|----------|
-| Getting started | [Getting Started](getting-started.md) |
-| Architecture | [Architecture](../architecture-and-design/architecture.md) |
-| Observability + LangFuse | [Observability Deep Dive](../ai-engineering/observability-deep-dive.md) |
-| Terraform (production) | [Terraform Guide](terraform-guide.md) |
-| Debugging | [Debugging Guide](debugging-guide.md) |
+| Topic | Document | 🫏 Donkey |
+|-------|----------|-----------|
+| Getting started | [Getting Started](getting-started.md) | 🫏 The orientation pack that walks a new stable hand through setting up the whole dispatch desk from scratch. |
+| Architecture | [Architecture](../architecture-and-design/architecture.md) | 🫏 The full stable blueprint explaining how the dispatch desk, pigeon-hole shelf, and expense ledger all connect. |
+| Observability + LangFuse | [Observability Deep Dive](../ai-engineering/observability-deep-dive.md) | 🫏 The deep-dive into stable CCTV and tachograph showing how to trace each donkey trip through LangFuse dashboards. |
+| Terraform (production) | [Terraform Guide](terraform-guide.md) | 🫏 The stable-blueprints guide for stamping out a full cloud barn on AWS or Azure with a single terraform apply. |
+| Debugging | [Debugging Guide](debugging-guide.md) | 🫏 The stable troubleshooting manual for diagnosing sick donkeys, quota exhaustion, and broken pigeon-hole shelves. |

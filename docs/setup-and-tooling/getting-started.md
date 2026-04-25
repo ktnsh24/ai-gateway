@@ -25,16 +25,16 @@
 
 ## What you need before starting
 
-| Tool | Version | Why you need it |
-| --- | --- | --- |
-| **Python** | 3.12+ | The gateway is written in Python |
-| **Poetry** | 1.8+ | Package manager (manages dependencies + virtual environment) |
-| **Git** | 2.40+ | Version control |
-| **Ollama** | Latest | Local LLM and embeddings (for `CLOUD_PROVIDER=local`) |
-| **Docker** | 24+ | For Redis + PostgreSQL (optional, for full setup) |
-| **AWS CLI** | 2.x | Connect to AWS services (optional) |
-| **Azure CLI** | 2.x | Connect to Azure services (optional) |
-| **Terraform** | 1.5+ | Deploy cloud infrastructure (optional) |
+| Tool | Version | Why you need it | 🫏 Donkey |
+| --- | --- | --- | --- |
+| **Python** | 3.12+ | The gateway is written in Python | 🫏 The stable floor itself — without Python 3.12 the whole dispatch desk refuses to stand up at all. |
+| **Poetry** | 1.8+ | Package manager (manages dependencies + virtual environment) | 🫏 The tack-room organiser that rounds up every dependency harness so all donkeys are fitted before the first trip. |
+| **Git** | 2.40+ | Version control | 🫏 The stable logbook that tracks every blueprint change so you can rewind to any working state if things go wrong. |
+| **Ollama** | Latest | Local LLM and embeddings (for `CLOUD_PROVIDER=local`) | 🫏 The local barn housing the donkey and GPS-coordinate writer so no cloud depot is needed during development. |
+| **Docker** | 24+ | For Redis + PostgreSQL (optional, for full setup) | 🫏 The portable mini-stable kit that spins up the pigeon-hole shelf and expense ledger containers with one command. |
+| **AWS CLI** | 2.x | Connect to AWS services (optional) | 🫏 The command-line pass that authenticates you to the AWS depot so cloud donkeys can be dispatched from the terminal. |
+| **Azure CLI** | 2.x | Connect to Azure services (optional) | 🫏 The command-line pass that authenticates you to the Azure hub so the Container Apps barn accepts your deploy commands. |
+| **Terraform** | 1.5+ | Deploy cloud infrastructure (optional) | 🫏 The stable-blueprints tool that prints AWS or Azure barn infrastructure from code with a single apply command. |
 
 ### Check what is already installed
 
@@ -103,16 +103,16 @@ cp .env.example .env
 
 Edit `.env` with these key settings:
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `CLOUD_PROVIDER` | `local` | LLM provider: `aws`, `azure`, `local` |
-| `PORT` | `8100` | Server port |
-| `ROUTING_STRATEGY` | `single` | Routing: `single`, `fallback`, `cost`, `round` |
-| `CACHE_ENABLED` | `true` | Enable semantic caching (in-memory or Redis) |
-| `CACHE_SIMILARITY_THRESHOLD` | `0.92` | Cosine similarity for cache hits |
-| `RATE_LIMIT_REQUESTS_PER_MINUTE` | `60` | Max requests per API key per minute |
-| `COST_TRACKING_ENABLED` | `true` | Track per-request costs |
-| `API_KEYS_ENABLED` | `false` | Require API key authentication |
+| Variable | Default | Description | 🫏 Donkey |
+| --- | --- | --- | --- |
+| `CLOUD_PROVIDER` | `local` | LLM provider: `aws`, `azure`, `local` | 🫏 Tells the dispatch desk which stable a donkey works for — local barn, AWS depot, or Azure hub. |
+| `PORT` | `8100` | Server port | 🫏 The front door number where the stable manager listens for incoming delivery note requests from every caller. |
+| `ROUTING_STRATEGY` | `single` | Routing: `single`, `fallback`, `cost`, `round` | 🫏 Decides which donkey gets the next trip — same donkey always, cheapest first, round turns, or sick-donkey fallback. |
+| `CACHE_ENABLED` | `true` | Enable semantic caching (in-memory or Redis) | 🫏 Turns the pigeon-hole of pre-written replies on or off so similar delivery notes skip the donkey entirely. |
+| `CACHE_SIMILARITY_THRESHOLD` | `0.92` | Cosine similarity for cache hits | 🫏 The minimum GPS closeness score before the dispatch desk considers two delivery notes similar enough to reuse the reply. |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | `60` | Max requests per API key per minute | 🫏 The trip quota enforced per courier — each API key may dispatch at most this many donkeys per fixed-window minute. |
+| `COST_TRACKING_ENABLED` | `true` | Track per-request costs | 🫏 Switches the donkey expense ledger on or off so every cargo-unit charge is recorded per provider per request. |
+| `API_KEYS_ENABLED` | `false` | Require API key authentication | 🫏 When enabled, the stable's front door demands a valid permission slip before any delivery note is accepted at all. |
 
 **Local provider settings (default — works out of the box):**
 
@@ -286,11 +286,11 @@ poetry run start
 
 ### Hardware requirements
 
-| Component | Minimum | Recommended |
-| --- | --- | --- |
-| **RAM** | 8 GB | 16 GB |
-| **Disk** | 5 GB (for models) | 10 GB |
-| **GPU** | Not required (CPU works) | NVIDIA GPU (faster inference) |
+| Component | Minimum | Recommended | 🫏 Donkey |
+| --- | --- | --- | --- |
+| **RAM** | 8 GB | 16 GB | 🫏 The stable's working memory — 8 GB keeps the local donkey trotting; 16 GB lets it gallop without swapping to disk. |
+| **Disk** | 5 GB (for models) | 10 GB | 🫏 Stores the donkey model files pulled from Ollama — the local barn needs at least 5 GB of clear floor space. |
+| **GPU** | Not required (CPU works) | NVIDIA GPU (faster inference) | 🫏 A GPU saddles up the donkey's inference horsepower, slashing response time compared to CPU-only barn operations. |
 
 ---
 

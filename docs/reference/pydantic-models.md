@@ -244,8 +244,8 @@ class UsageResponse(BaseModel):
 
 ## Cross-References
 
-| Topic | Document |
-|-------|----------|
-| API specification | [API Contract](../architecture-and-design/api-contract.md) |
-| Architecture | [Architecture](../architecture-and-design/architecture.md) |
-| Config settings | [Getting Started](../setup-and-tooling/getting-started.md) |
+| Topic | Document | 🫏 Donkey |
+|-------|----------|-----------|
+| API specification | [API Contract](../architecture-and-design/api-contract.md) | 🫏 The API contract is the stable's official rulebook specifying every delivery note format and response structure that clients must follow at the front door. |
+| Architecture | [Architecture](../architecture-and-design/architecture.md) | 🫏 The architecture blueprint shows how the dispatch desk, pigeon-hole shelf, and expense ledger connect to route each donkey trip end-to-end across providers. |
+| Config settings | [Getting Started](../setup-and-tooling/getting-started.md) | 🫏 The getting-started config guide sets up the stable's environment variables so the switchboard knows which donkey barn and pigeon-hole shelf to connect to. |

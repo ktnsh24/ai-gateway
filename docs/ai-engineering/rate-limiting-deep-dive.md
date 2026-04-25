@@ -25,12 +25,12 @@
 
 ## 1. Why Rate Limit an LLM Gateway?
 
-| Without Rate Limiting | With Rate Limiting |
-|----------------------|-------------------|
-| Single user can exhaust provider quota | Fair allocation across consumers |
-| No cost control | Predictable cost ceiling |
-| DDoS → cascading failures | Graceful degradation with 429 |
-| No per-client visibility | Per-key usage tracking |
+| Without Rate Limiting | With Rate Limiting | 🫏 Donkey |
+|----------------------|-------------------|-----------| 
+| Single user can exhaust provider quota | Fair allocation across consumers | 🫏 Without a trip quota, one greedy courier books every donkey and leaves all other callers waiting at the stable door. |
+| No cost control | Predictable cost ceiling | 🫏 A per-courier trip quota means the donkey expense ledger never exceeds a known maximum no matter how many requests arrive. |
+| DDoS → cascading failures | Graceful degradation with 429 | 🫏 A sudden flood of delivery notes hits the stable, but the trip quota absorbs the storm and returns 429 instead of crashing every donkey. |
+| No per-client visibility | Per-key usage tracking | 🫏 Each API key gets its own counter so the dispatch desk can see exactly how many trips each courier has taken this window. |
 
 ### Cost Protection Example
 
@@ -67,11 +67,11 @@ class BaseRateLimiter(ABC):
 
 ### Implementations
 
-| Class | Backend | Use Case |
-|-------|---------|----------|
-| `RedisRateLimiter` | Redis | Production — shared across instances |
-| `InMemoryRateLimiter` | Python dict | Development — single instance |
-| `NoRateLimiter` | None | Testing — no limiting |
+| Class | Backend | Use Case | 🫏 Donkey |
+|-------|---------|----------|-----------|
+| `RedisRateLimiter` | Redis | Production — shared across instances | 🫏 The trip-quota counter lives on the fast pigeon-hole shelf so every stable instance shares the same running total accurately. |
+| `InMemoryRateLimiter` | Python dict | Development — single instance | 🫏 Trip counts are stored as sticky notes in a single process — fine for the local barn but inaccurate across multiple stable instances. |
+| `NoRateLimiter` | None | Testing — no limiting | 🫏 No trip quota enforced at all — every delivery note is accepted without checking any counter, used only during the automated test suite. |
 
 ### Factory
 
@@ -186,12 +186,12 @@ class InMemoryRateLimiter(BaseRateLimiter):
 
 ### Limitations
 
-| Feature | Redis | In-Memory |
-|---------|-------|-----------|
-| Shared across instances | ✅ | ❌ (per-process) |
-| Survives restart | ✅ | ❌ |
-| Cleanup | TTL (automatic) | Manual (on access) |
-| Accuracy with N instances | Perfect | Rate = limit × N |
+| Feature | Redis | In-Memory | 🫏 Donkey |
+|---------|-------|-----------|-----------|
+| Shared across instances | ✅ | ❌ (per-process) | 🫏 The Redis pigeon-hole shelf is visible to every running stable instance, so the trip quota is exact even with horizontal scaling. |
+| Survives restart | ✅ | ❌ | 🫏 If the stable restarts, the fast pigeon-hole shelf still holds the trip count, but sticky-note counters vanish with the process. |
+| Cleanup | TTL (automatic) | Manual (on access) | 🫏 Redis sets a TTL so old window keys auto-expire; sticky-note counters are only swept up when the next request triggers a cleanup pass. |
+| Accuracy with N instances | Perfect | Rate = limit × N | 🫏 Ten stable instances sharing one Redis shelf all see the same count, but ten sticky-note boards each count independently, multiplying the effective limit. |
 
 ---
 
@@ -256,13 +256,13 @@ Retry-After: 45
 
 ## 8. Algorithm Comparison
 
-| Algorithm | Complexity | Accuracy | Redis Commands | Gateway Uses |
-|-----------|-----------|----------|----------------|-------------|
-| **Fixed Window** | Simple | Window boundary burst | 2 (INCR + EXPIRE) | ✅ |
-| Sliding Window Log | Medium | Perfect | N (store each timestamp) | ❌ |
-| Sliding Window Counter | Medium | Good approximation | 3 (two windows + interpolate) | ❌ |
-| Token Bucket | Complex | Smooth | 3+ (bucket + refill) | ❌ |
-| Leaky Bucket | Complex | Smooth | Queue-based | ❌ |
+| Algorithm | Complexity | Accuracy | Redis Commands | Gateway Uses | 🫏 Donkey |
+|-----------|-----------|----------|----------------|-------------|-----------|
+| **Fixed Window** | Simple | Window boundary burst | 2 (INCR + EXPIRE) | ✅ | 🫏 The gateway uses this: two Redis commands count trips per clock-aligned minute window — simple, fast, and good enough for expensive donkey calls. |
+| Sliding Window Log | Medium | Perfect | N (store each timestamp) | ❌ | 🫏 Every delivery note's timestamp is stored separately so the quota window slides perfectly, but it burns more Redis shelf memory per courier. |
+| Sliding Window Counter | Medium | Good approximation | 3 (two windows + interpolate) | ❌ | 🫏 Two overlapping fixed windows are blended to approximate a smooth trip quota without storing every timestamp, saving pigeon-hole shelf space. |
+| Token Bucket | Complex | Smooth | 3+ (bucket + refill) | ❌ | 🫏 Cargo units drip back into the bucket at a steady rate, allowing short bursts while smoothing sustained donkey load — but needs more Redis commands. |
+| Leaky Bucket | Complex | Smooth | Queue-based | ❌ | 🫏 Delivery notes queue up and leak out at a fixed rate, giving the smoothest output but requiring a Redis-backed queue for each courier key. |
 
 ### Why Fixed Window?
 
@@ -287,21 +287,21 @@ For an LLM gateway doing ~1 req/sec, this is not a practical concern.
 
 ## 9. Certification Relevance
 
-| Cert Topic | Connection |
-|------------|------------|
-| **AWS SAA-C03: API Gateway throttling** | Fixed window = API Gateway's default throttling |
-| **AWS SAA-C03: ElastiCache patterns** | Redis as rate limit store |
-| **AZ-305: API Management** | Rate limiting policies |
-| **AZ-305: Azure Cache for Redis** | Distributed rate limiting |
+| Cert Topic | Connection | 🫏 Donkey |
+|------------|------------|-----------|
+| **AWS SAA-C03: API Gateway throttling** | Fixed window = API Gateway's default throttling | 🫏 AWS API Gateway uses the same fixed-window approach — the trip quota resets every clock minute, just like this stable's rate limiter. |
+| **AWS SAA-C03: ElastiCache patterns** | Redis as rate limit store | 🫏 ElastiCache Redis is the production pigeon-hole shelf for trip-quota counters — a classic AWS caching-and-rate-limit pattern for the exam. |
+| **AZ-305: API Management** | Rate limiting policies | 🫏 Azure API Management enforces trip quotas via rate-limiting policies, mirroring the fixed-window counter the gateway implements in Python. |
+| **AZ-305: Azure Cache for Redis** | Distributed rate limiting | 🫏 Azure Cache for Redis is the Azure pigeon-hole shelf that stores distributed trip-quota counters across multiple stable container instances. |
 
 ---
 
 ## 10. Cross-References
 
-| Topic | Document |
-|-------|----------|
-| Architecture overview | [Architecture](../architecture-and-design/architecture.md) |
-| Caching (same Redis) | [Caching Deep Dive](caching-deep-dive.md) |
-| Cost tracking | [Cost Tracking Deep Dive](cost-tracking-deep-dive.md) |
-| API contract (429 response) | [API Contract](../architecture-and-design/api-contract.md) |
-| Lab: Rate limit testing | [Labs Phase 1](../hands-on-labs/hands-on-labs-phase-1.md) |
+| Topic | Document | 🫏 Donkey |
+|-------|----------|-----------|
+| Architecture overview | [Architecture](../architecture-and-design/architecture.md) | 🫏 The full stable blueprint shows where the trip-quota check sits in the request pipeline relative to the cache and donkey router. |
+| Caching (same Redis) | [Caching Deep Dive](caching-deep-dive.md) | 🫏 The same fast pigeon-hole shelf holds both trip-quota counters and the semantic-reply cache on separate key prefixes. |
+| Cost tracking | [Cost Tracking Deep Dive](cost-tracking-deep-dive.md) | 🫏 Trip quotas protect the donkey expense ledger from runaway costs; see the cost deep dive for how spending is recorded per request. |
+| API contract (429 response) | [API Contract](../architecture-and-design/api-contract.md) | 🫏 When a courier exceeds their quota, the stable's front door returns a 429 with a Retry-After header as documented in the contract. |
+| Lab: Rate limit testing | [Labs Phase 1](../hands-on-labs/hands-on-labs-phase-1.md) | 🫏 The hands-on lab shows how to fire enough requests to trigger the 429 and observe the trip-quota counter in Redis directly. |

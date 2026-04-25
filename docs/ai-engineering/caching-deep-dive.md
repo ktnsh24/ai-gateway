@@ -25,12 +25,12 @@
 
 ## 1. Why Cache LLM Responses?
 
-| Without Cache | With Cache |
-|--------------|------------|
-| Every request → LLM provider | Repeated questions → instant response |
-| 1-5 seconds per request | <10ms for cache hits |
-| Full token cost every time | Zero cost for cache hits |
-| Provider rate limits hit faster | Provider calls reduced 20-40% |
+| Without Cache | With Cache | 🫏 Donkey |
+|--------------|------------|-----------|
+| Every request → LLM provider | Repeated questions → instant response | 🫏 Every delivery note goes straight to a donkey — no chance to reuse the reply already sitting in the pigeon-hole. |
+| 1-5 seconds per request | <10ms for cache hits | 🫏 Fetching from a live donkey takes one to five seconds; pulling from the pre-written pigeon-hole takes under ten milliseconds. |
+| Full token cost every time | Zero cost for cache hits | 🫏 Every cargo unit consumed on every trip; the pigeon-hole hands back pre-written replies at zero cargo cost. |
+| Provider rate limits hit faster | Provider calls reduced 20-40% | 🫏 Hammering the stable's front door risks hitting the trip quota; the pigeon-hole cuts provider calls by twenty to forty percent. |
 
 ### Real-World Impact
 
@@ -70,11 +70,11 @@ class BaseCache(ABC):
 
 ### Implementations
 
-| Class | Backend | Use Case |
-|-------|---------|----------|
-| `RedisSemanticCache` | Redis 7 | Production — persistent, distributed |
-| `InMemoryCache` | Python dict | Development — no Redis needed |
-| `NoCache` | None | Testing — no caching at all |
+| Class | Backend | Use Case | 🫏 Donkey |
+|-------|---------|----------|-----------|
+| `RedisSemanticCache` | Redis 7 | Production — persistent, distributed | 🫏 The fast pigeon-hole shelf with permanent ink — pre-written replies survive restarts and are shared across every dispatch desk. |
+| `InMemoryCache` | Python dict | Development — no Redis needed | 🫏 Scribbled sticky notes on the dispatch desk — quick to use during development but wiped clean the moment the stable closes. |
+| `NoCache` | None | Testing — no caching at all | 🫏 No pigeon-hole at all — every test delivery note goes straight to the donkey so nothing is ever silently reused. |
 
 ### Factory Selection
 
@@ -112,13 +112,13 @@ def _make_cache_key(self, messages: list[dict], model: str, temperature: float) 
 
 ### Why These Fields?
 
-| Field | Included? | Why |
-|-------|-----------|-----|
-| `messages` | ✅ | Different questions → different answers |
-| `model` | ✅ | Different models → different answers |
-| `temperature` | ✅ | Higher temperature → different phrasing |
-| `max_tokens` | ❌ | Same answer, just truncated |
-| `timestamp` | ❌ | Would make every request unique |
+| Field | Included? | Why | 🫏 Donkey |
+|-------|-----------|-----|-----------|
+| `messages` | ✅ | Different questions → different answers | 🫏 The delivery note content decides which reply goes in the pigeon-hole — different notes must never share the same slot. |
+| `model` | ✅ | Different models → different answers | 🫏 A Claude donkey writes a different reply than a llama donkey, so the donkey's name is baked into the pigeon-hole key. |
+| `temperature` | ✅ | Higher temperature → different phrasing | 🫏 A hot-tempered donkey phrases things differently, so the temperature knob is included in the pigeon-hole lookup key. |
+| `max_tokens` | ❌ | Same answer, just truncated | 🫏 Cutting cargo units short doesn't change the reply's meaning, so max_tokens is left out of the pigeon-hole key. |
+| `timestamp` | ❌ | Would make every request unique | 🫏 Stamping every delivery note with the clock would make every trip unique and the pigeon-hole would never match anything. |
 
 ### Key Design: `sort_keys=True`
 
@@ -168,13 +168,13 @@ async def _semantic_lookup(self, messages: list[dict]) -> dict | None:
 
 ### Similarity Threshold
 
-| Threshold | Behaviour |
-|-----------|-----------|
-| `0.99` | Almost exact match only |
-| `0.95` | Close paraphrases |
-| `0.92` | **Default** — balances precision and recall |
-| `0.85` | Loose matching — risks wrong cache hits |
-| `0.80` | Too loose — semantically different questions match |
+| Threshold | Behaviour | 🫏 Donkey |
+|-----------|-----------|-----------|
+| `0.99` | Almost exact match only | 🫏 At 0.99 the pigeon-hole only fires when the delivery note is word-for-word identical — paraphrases never match. |
+| `0.95` | Close paraphrases | 🫏 At 0.95 the pigeon-hole catches close paraphrases, handing back the same pre-written reply for slightly reworded notes. |
+| `0.92` | **Default** — balances precision and recall | 🫏 The default pigeon-hole threshold; close-enough delivery notes share a reply without accidentally mixing up unrelated questions. |
+| `0.85` | Loose matching — risks wrong cache hits | 🫏 At 0.85 the pigeon-hole is too lenient — loosely similar delivery notes may get the wrong pre-written reply returned. |
+| `0.80` | Too loose — semantically different questions match | 🫏 At 0.80 the pigeon-hole hands back replies for completely different delivery notes, making the cache actively misleading. |
 
 The threshold is configured via `CACHE_SIMILARITY_THRESHOLD`.
 
@@ -249,13 +249,13 @@ class InMemoryCache(BaseCache):
 
 ### Differences from Redis
 
-| Feature | Redis | In-Memory |
-|---------|-------|-----------|
-| Persistence | Across restarts | Lost on restart |
-| Shared | Across processes | Per process |
-| TTL | Native Redis TTL | Checked on access |
-| Max size | Limited by Redis memory | 1000 entries (LRU) |
-| Semantic match | ✅ | ✅ (same algorithm) |
+| Feature | Redis | In-Memory | 🫏 Donkey |
+|---------|-------|-----------|-----------|
+| Persistence | Across restarts | Lost on restart | 🫏 The fast pigeon-hole shelf survives a stable reopening; sticky notes vanish the moment the stable shuts for the night. |
+| Shared | Across processes | Per process | 🫏 The Redis pigeon-hole is read by every dispatch desk; sticky notes are only visible to the one desk that wrote them. |
+| TTL | Native Redis TTL | Checked on access | 🫏 The shelf automatically retires old notes after the time limit; sticky-note expiry is only checked when the note is next picked up. |
+| Max size | Limited by Redis memory | 1000 entries (LRU) | 🫏 The shelf grows as long as the stable's memory allows; the sticky-note board holds only a thousand notes before the oldest is discarded. |
+| Semantic match | ✅ | ✅ (same algorithm) | 🫏 Both the shelf and the sticky-note board use the same GPS cosine trick to find similar delivery notes — identical algorithm either way. |
 
 ---
 
@@ -292,12 +292,12 @@ Clients can bypass cache for a specific request:
 
 ## 8. Performance Characteristics
 
-| Operation | Redis | In-Memory |
-|-----------|-------|-----------|
-| Exact match lookup | ~1ms | ~0.1ms |
-| Semantic match (100 entries) | ~5ms | ~3ms |
-| Semantic match (1000 entries) | ~50ms | ~30ms |
-| Cache store | ~1ms | ~0.1ms |
+| Operation | Redis | In-Memory | 🫏 Donkey |
+|-----------|-------|-----------|-----------|
+| Exact match lookup | ~1ms | ~0.1ms | 🫏 Hashing the delivery note and checking the pigeon-hole takes about one millisecond on the shelf, a tenth on sticky notes. |
+| Semantic match (100 entries) | ~5ms | ~3ms | 🫏 Comparing a delivery note's GPS coordinates against a hundred shelf entries takes roughly five milliseconds on the shelf. |
+| Semantic match (1000 entries) | ~50ms | ~30ms | 🫏 Scanning a thousand stored GPS coordinates balloons to fifty milliseconds on the shelf — a signal to switch to FAISS indexing. |
+| Cache store | ~1ms | ~0.1ms | 🫏 Filing a new reply on the pigeon-hole shelf costs one millisecond; scribbling a sticky note costs just a tenth of a millisecond. |
 
 ### When Cache Size Grows
 
@@ -310,22 +310,22 @@ The semantic matching is O(n) — it compares against every cached embedding. Fo
 
 ## 9. Certification Relevance
 
-| Cert Topic | Connection |
-|------------|------------|
-| **AWS SAA-C03: ElastiCache** | Redis caching strategies, TTL management |
-| **AWS SAA-C03: Caching patterns** | Cache-aside pattern with semantic matching |
-| **AZ-305: Azure Cache for Redis** | Same concepts, Azure implementation |
-| **AZ-305: Performance optimisation** | Reducing latency via intelligent caching |
+| Cert Topic | Connection | 🫏 Donkey |
+|------------|------------|-----------|
+| **AWS SAA-C03: ElastiCache** | Redis caching strategies, TTL management | 🫏 ElastiCache is AWS's managed pigeon-hole shelf — the stable blueprints and TTL tricks map directly to the SAA-C03 exam questions. |
+| **AWS SAA-C03: Caching patterns** | Cache-aside pattern with semantic matching | 🫏 Cache-aside means the dispatch desk checks the pigeon-hole first and only calls the donkey on a miss — a classic AWS exam pattern. |
+| **AZ-305: Azure Cache for Redis** | Same concepts, Azure implementation | 🫏 Azure's pigeon-hole shelf works the same way as AWS's — TTL, persistence, and semantic matching all apply at the Azure hub too. |
+| **AZ-305: Performance optimisation** | Reducing latency via intelligent caching | 🫏 Routing repeated delivery notes to the pigeon-hole instead of a live donkey is Azure's key performance-optimisation pattern. |
 
 ---
 
 ## 10. Cross-References
 
-| Topic | Document |
-|-------|----------|
-| Architecture overview | [Architecture](../architecture-and-design/architecture.md) |
-| LLM routing | [LiteLLM Deep Dive](litellm-deep-dive.md) |
-| Rate limiting | [Rate Limiting Deep Dive](rate-limiting-deep-dive.md) |
-| Cost tracking | [Cost Tracking Deep Dive](cost-tracking-deep-dive.md) |
-| Redis setup | [Docker Compose Guide](../setup-and-tooling/docker-compose-guide.md) |
-| Lab: Cache testing | [Labs Phase 1](../hands-on-labs/hands-on-labs-phase-1.md) |
+| Topic | Document | 🫏 Donkey |
+|-------|----------|-----------|
+| Architecture overview | [Architecture](../architecture-and-design/architecture.md) | 🫏 The full stable floor plan showing where the dispatch desk, pigeon-hole, and every donkey fits together. |
+| LLM routing | [LiteLLM Deep Dive](litellm-deep-dive.md) | 🫏 How the universal harness picks which donkey takes the trip before the pigeon-hole even gets a chance to intercept. |
+| Rate limiting | [Rate Limiting Deep Dive](rate-limiting-deep-dive.md) | 🫏 The trip quota system that stops one courier from exhausting all available donkeys before others get a turn. |
+| Cost tracking | [Cost Tracking Deep Dive](cost-tracking-deep-dive.md) | 🫏 The leather-bound expense ledger that records every cargo unit consumed and every pigeon-hole hit that saved one. |
+| Redis setup | [Docker Compose Guide](../setup-and-tooling/docker-compose-guide.md) | 🫏 Step-by-step instructions for spinning up the fast pigeon-hole shelf inside the portable mini-stable kit. |
+| Lab: Cache testing | [Labs Phase 1](../hands-on-labs/hands-on-labs-phase-1.md) | 🫏 Hands-on exercises that send identical delivery notes to verify the pigeon-hole returns pre-written replies correctly. |

@@ -62,12 +62,12 @@ The AI Gateway sits between client applications and LLM providers, adding a unif
 
 Each component follows the **Strategy Pattern**: an abstract base class (ABC) with multiple implementations, selected at runtime via a factory function.
 
-| Component | ABC | Implementations | Factory |
-|-----------|-----|-----------------|---------|
-| **LLM Router** | `BaseLLMRouter` | `LiteLLMRouter` | `create_router()` |
-| **Cache** | `BaseCache` | `RedisSemanticCache`, `InMemoryCache`, `NoCache` | `create_cache()` |
-| **Rate Limiter** | `BaseRateLimiter` | `RedisRateLimiter`, `InMemoryRateLimiter`, `NoRateLimiter` | `create_rate_limiter()` |
-| **Cost Tracker** | `BaseCostTracker` | `PostgresCostTracker`, `InMemoryCostTracker`, `NoCostTracker` | `create_cost_tracker()` |
+| Component | ABC | Implementations | Factory | 🫏 Donkey |
+|-----------|-----|-----------------|---------|-----------|
+| **LLM Router** | `BaseLLMRouter` | `LiteLLMRouter` | `create_router()` | 🫏 The dispatch desk that picks which donkey takes the next trip — LiteLLM provides the universal harness so any provider stable fits the same reins. |
+| **Cache** | `BaseCache` | `RedisSemanticCache`, `InMemoryCache`, `NoCache` | `create_cache()` | 🫏 The pigeon-hole shelf swaps between Redis fast shelf, in-memory sticky notes, and a no-op discard — the factory picks based on env vars at boot. |
+| **Rate Limiter** | `BaseRateLimiter` | `RedisRateLimiter`, `InMemoryRateLimiter`, `NoRateLimiter` | `create_rate_limiter()` | 🫏 The trip-quota enforcer swaps between Redis-backed distributed counting and single-process sticky notes depending on whether Redis is reachable. |
+| **Cost Tracker** | `BaseCostTracker` | `PostgresCostTracker`, `InMemoryCostTracker`, `NoCostTracker` | `create_cost_tracker()` | 🫏 The expense ledger swaps between the leather-bound PostgreSQL log, in-memory running totals, and a no-op sink used during testing. |
 
 ### 2.2 File Layout
 
@@ -306,15 +306,15 @@ Resource Group
 
 ## 7. Cross-References
 
-| Topic | Document |
-|-------|----------|
-| Setup instructions | [Getting Started](../setup-and-tooling/getting-started.md) |
-| API specification | [API Contract](api-contract.md) |
-| LiteLLM routing details | [LiteLLM Deep Dive](../ai-engineering/litellm-deep-dive.md) |
-| Caching implementation | [Caching Deep Dive](../ai-engineering/caching-deep-dive.md) |
-| Rate limiting details | [Rate Limiting Deep Dive](../ai-engineering/rate-limiting-deep-dive.md) |
-| Cost tracking details | [Cost Tracking Deep Dive](../ai-engineering/cost-tracking-deep-dive.md) |
-| Observability | [Observability Deep Dive](../ai-engineering/observability-deep-dive.md) |
-| Pydantic models | [Pydantic Models Reference](../reference/pydantic-models.md) |
-| Docker setup | [Docker Compose Guide](../setup-and-tooling/docker-compose-guide.md) |
-| Terraform | [Terraform Guide](../setup-and-tooling/terraform-guide.md) |
+| Topic | Document | 🫏 Donkey |
+|-------|----------|-----------|
+| Setup instructions | [Getting Started](../setup-and-tooling/getting-started.md) | 🫏 The getting-started guide walks through booting the portable mini-stable kit and sending the first delivery note through the front door. |
+| API specification | [API Contract](api-contract.md) | 🫏 The API contract lists every endpoint, field, and error code the stable's front door accepts and returns to courier clients. |
+| LiteLLM routing details | [LiteLLM Deep Dive](../ai-engineering/litellm-deep-dive.md) | 🫏 The LiteLLM deep dive explains how the universal harness translates one delivery note format into provider-specific dialects for each far stable. |
+| Caching implementation | [Caching Deep Dive](../ai-engineering/caching-deep-dive.md) | 🫏 The pigeon-hole deep dive covers how the gateway stores and retrieves pre-written replies using semantic cosine-similarity matching. |
+| Rate limiting details | [Rate Limiting Deep Dive](../ai-engineering/rate-limiting-deep-dive.md) | 🫏 The trip-quota deep dive explains the fixed-window counter, per-courier Redis keys, and the 429 response when the quota runs out. |
+| Cost tracking details | [Cost Tracking Deep Dive](../ai-engineering/cost-tracking-deep-dive.md) | 🫏 The expense ledger deep dive covers how each donkey trip's cargo-unit count is costed and persisted in the PostgreSQL leather-bound log. |
+| Observability | [Observability Deep Dive](../ai-engineering/observability-deep-dive.md) | 🫏 The stable CCTV deep dive covers request logging middleware, tachograph IDs, latency headers, and the optional LangFuse CCTV upgrade. |
+| Pydantic models | [Pydantic Models Reference](../reference/pydantic-models.md) | 🫏 The Pydantic reference lists every request and response cargo schema the stable manager uses to validate delivery notes and receipts. |
+| Docker setup | [Docker Compose Guide](../setup-and-tooling/docker-compose-guide.md) | 🫏 The portable mini-stable kit guide explains the Docker Compose file that spins up app, Redis, PostgreSQL, and optional LangFuse together. |
+| Terraform | [Terraform Guide](../setup-and-tooling/terraform-guide.md) | 🫏 The stable blueprints guide covers Terraform modules that provision AWS ECS, ElastiCache, RDS, and the Azure equivalents in production. |

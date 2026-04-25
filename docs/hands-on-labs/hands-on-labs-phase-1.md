@@ -22,35 +22,35 @@
 
 All labs run **locally for free**. Cloud costs if you deploy:
 
-| Stack | Per lab session (~50 queries) | Monthly (always on) | Best for |
-|-------|-------------------------------|---------------------|----------|
-| **Local (Ollama + Redis + PostgreSQL)** | $0 | $0 | Learning, experimenting |
-| **AWS (cheapest)** | ~$0.03 | ~$35/mo (ElastiCache + RDS) | Proving cloud skills |
-| **Azure (cheapest)** | ~$0.01 | ~$15/mo (Redis Cache Basic) | Good free tiers |
+| Stack | Per lab session (~50 queries) | Monthly (always on) | Best for | 🫏 Donkey |
+|-------|-------------------------------|---------------------|----------|-----------|
+| **Local (Ollama + Redis + PostgreSQL)** | $0 | $0 | Learning, experimenting | 🫏 Running the whole stable locally costs nothing, letting you practise every dispatch workflow without logging a single cent in the expense ledger. |
+| **AWS (cheapest)** | ~$0.03 | ~$35/mo (ElastiCache + RDS) | Proving cloud skills | 🫏 The AWS depot charges about three cents per lab session, proving you can run a real cloud stable with a leather-bound PostgreSQL expense ledger. |
+| **Azure (cheapest)** | ~$0.01 | ~$15/mo (Redis Cache Basic) | Good free tiers | 🫏 The Azure hub costs around one cent per session with generous free tiers that make it friendly for smaller courier fleets learning cloud dispatch. |
 
 <details>
 <summary>Detailed AWS breakdown</summary>
 
-| Component | AWS Service | Cost |
-|-----------|-------------|------|
-| LLM | Bedrock (Claude 3 Haiku) | ~$0.02/session |
-| Semantic cache | ElastiCache Redis (t3.micro) | ~$13/mo |
-| Cost tracking DB | RDS PostgreSQL (t3.micro) | ~$15/mo |
-| API server | ECS Fargate (0.5 vCPU) | ~$15/mo |
-| Logs | CloudWatch | $0 (free tier) |
+| Component | AWS Service | Cost | 🫏 Donkey |
+|-----------|-------------|------|-----------|
+| LLM | Bedrock (Claude 3 Haiku) | ~$0.02/session | 🫏 The AWS depot's Haiku donkey costs about two cents per lab session, making it the cheapest cloud barn for straightforward delivery errands. |
+| Semantic cache | ElastiCache Redis (t3.micro) | ~$13/mo | 🫏 ElastiCache is the fast pigeon-hole shelf in the AWS depot, storing pre-written replies at about thirteen dollars a month on a micro-sized rack. |
+| Cost tracking DB | RDS PostgreSQL (t3.micro) | ~$15/mo | 🫏 RDS is the cloud leather-bound expense ledger that logs every donkey trip's cargo units and cost at around fifteen dollars a month. |
+| API server | ECS Fargate (0.5 vCPU) | ~$15/mo | 🫏 The Fargate stable manager hosts the switchboard dispatch desk in the cloud for about fifteen dollars a month with no server to maintain yourself. |
+| Logs | CloudWatch | $0 (free tier) | 🫏 CloudWatch is the free stable CCTV that records every trip log and lets you replay any donkey's delivery journey without paying a monitoring bill. |
 
 </details>
 
 <details>
 <summary>Detailed Azure breakdown</summary>
 
-| Component | Azure Service | Cost |
-|-----------|---------------|------|
-| LLM | Azure OpenAI (GPT-4o mini) | ~$0.01/session |
-| Semantic cache | Azure Cache for Redis (Basic C0) | ~$15/mo |
-| Cost tracking DB | Azure Database for PostgreSQL (Burstable B1ms) | ~$13/mo |
-| API server | Container Apps (free tier) | $0 |
-| Logs | Azure Monitor | $0 |
+| Component | Azure Service | Cost | 🫏 Donkey |
+|-----------|---------------|------|-----------|
+| LLM | Azure OpenAI (GPT-4o mini) | ~$0.01/session | 🫏 The Azure hub's GPT-4o mini donkey costs just one cent per session, offering a quick and affordable cloud barn for standard delivery tasks. |
+| Semantic cache | Azure Cache for Redis (Basic C0) | ~$15/mo | 🫏 Azure's fast pigeon-hole shelf keeps pre-written replies ready for about fifteen dollars a month on the Basic C0 rack at the Azure hub. |
+| Cost tracking DB | Azure Database for PostgreSQL (Burstable B1ms) | ~$13/mo | 🫏 Azure's leather-bound expense ledger runs on a burstable instance for thirteen dollars a month, logging every cargo unit delivered by hub donkeys. |
+| API server | Container Apps (free tier) | $0 | 🫏 The Azure stable manager runs the dispatch desk for free on Container Apps, hosting the switchboard without adding a cent to the monthly stable bill. |
+| Logs | Azure Monitor | $0 | 🫏 Azure Monitor acts as free stable CCTV, recording every trip detail so you can trace any donkey's route without incurring extra observability costs. |
 
 </details>
 
@@ -213,13 +213,13 @@ curl -s http://localhost:8100/v1/chat/completions \
 
 ### Expected Results
 
-| Request | Cache Hit | Latency |
-|---------|-----------|---------|
-| First "What is machine learning?" | ❌ | ~1500ms |
-| Identical repeat | ✅ (exact) | ~5ms |
-| "Explain machine learning to me" | ✅ (semantic) | ~10ms |
-| "What is quantum computing?" | ❌ | ~1500ms |
-| With `bypass_cache: true` | ❌ (bypassed) | ~1500ms |
+| Request | Cache Hit | Latency | 🫏 Donkey |
+|---------|-----------|---------|-----------|
+| First "What is machine learning?" | ❌ | ~1500ms | 🫏 The first delivery note about machine learning has no match in the pigeon-hole, so a donkey makes the full 1500ms round trip to the provider stable. |
+| Identical repeat | ✅ (exact) | ~5ms | 🫏 The pigeon-hole finds an exact address match and hands back the cached reply in 5ms, skipping the donkey trip entirely for a 300× speed-up. |
+| "Explain machine learning to me" | ✅ (semantic) | ~10ms | 🫏 A paraphrased delivery note matches the GPS-coordinate warehouse entry closely enough to trigger a semantic cache hit in about 10ms. |
+| "What is quantum computing?" | ❌ | ~1500ms | 🫏 Quantum computing has never been delivered before, so the pigeon-hole is empty and a donkey must make the full 1500ms round trip to fetch the answer. |
+| With `bypass_cache: true` | ❌ (bypassed) | ~1500ms | 🫏 The bypass flag tells the dispatch desk to ignore the pigeon-hole entirely, forcing a fresh donkey trip even when a cached reply is already on the shelf. |
 
 ### Verify
 
@@ -369,20 +369,20 @@ Embeddings are the bridge between text and vector search. The gateway unifies em
 
 ## Summary
 
-| Lab | Component | Key Learning |
-|-----|-----------|-------------|
-| 1 | LLM Router | OpenAI-compatible API, provider abstraction |
-| 2 | Semantic Cache | Exact + semantic matching, latency reduction |
-| 3 | Rate Limiter | Fixed-window counters, 429 handling |
-| 4 | Embeddings | Embedding endpoint, vector dimensions |
+| Lab | Component | Key Learning | 🫏 Donkey |
+|-----|-----------|-------------|-----------|
+| 1 | LLM Router | OpenAI-compatible API, provider abstraction | 🫏 The dispatch desk accepts any delivery note in OpenAI format and routes it to whichever provider stable the config points at, hiding the swap from clients. |
+| 2 | Semantic Cache | Exact + semantic matching, latency reduction | 🫏 The pigeon-hole shelf saves repeated trips by returning pre-written replies for exact or GPS-coordinate-close queries, cutting latency from 1500ms to 5ms. |
+| 3 | Rate Limiter | Fixed-window counters, 429 handling | 🫏 The stable gate counts each courier's knocks per minute and slams shut with a 429 quota-used-up error when the fixed-window trip quota is exceeded. |
+| 4 | Embeddings | Embedding endpoint, vector dimensions | 🫏 The GPS-coordinate writer converts text into 768-dimensional float vectors so the pigeon-hole and downstream retrieval can compare delivery addresses. |
 
 ## Phase 1 Labs — Skills Checklist
 
-| # | Skill | Lab | Can you explain it? |
-|---|---|---|---|
-| 1 | OpenAI-compatible gateway request flow | Lab 1 | [ ] Yes |
-| 2 | Exact and semantic cache behavior | Lab 2 | [ ] Yes |
-| 3 | Rate-limit enforcement and error handling | Lab 3 | [ ] Yes |
-| 4 | Embeddings API shape and dimensions | Lab 4 | [ ] Yes |
+| # | Skill | Lab | Can you explain it? | 🫏 Donkey |
+|---|---|---|---|---|
+| 1 | OpenAI-compatible gateway request flow | Lab 1 | [ ] Yes | 🫏 The stable's front door accepts OpenAI-format delivery notes and routes them to any donkey regardless of which provider stable the donkey actually works for. |
+| 2 | Exact and semantic cache behavior | Lab 2 | [ ] Yes | 🫏 The pigeon-hole returns pre-written replies for identical or GPS-coordinate-close queries, saving the donkey trip and shrinking the expense ledger. |
+| 3 | Rate-limit enforcement and error handling | Lab 3 | [ ] Yes | 🫏 The stable gate enforces a trip quota per API key, returning a 429 quota-used-up error when a courier exceeds their per-minute allowance. |
+| 4 | Embeddings API shape and dimensions | Lab 4 | [ ] Yes | 🫏 The GPS-coordinate writer endpoint outputs a float array of 768 or 1024 values used by the pigeon-hole to judge address similarity between delivery notes. |
 
 **Next:** [Phase 2 Labs](hands-on-labs-phase-2.md) — Cost tracking, health checks, observability, multi-provider testing.
