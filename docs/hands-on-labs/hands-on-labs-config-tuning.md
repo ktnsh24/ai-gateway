@@ -15,6 +15,7 @@
 - [Lab 5: Semantic Cache TTL Sweep](#lab-5-semantic-cache-ttl-sweep)
 - [Lab 6: Semantic Cache Similarity Threshold Sweep](#lab-6-semantic-cache-similarity-threshold-sweep)
 - [Lab 7: Rate-Limit RPM Sweep](#lab-7-rate-limit-rpm-sweep)
+- [Lab 8: LLM-as-Judge Evaluation](#lab-8-llm-as-judge-evaluation--can-a-smarter-llm-grade-the-gateways-routing-choices)
 
 ---
 
@@ -211,3 +212,65 @@ Rate limits protect the budget more than the latency. Tier them per API key (fre
 
 ### 🫏 Donkey takeaway
 The stable's front door only lets each client knock so many times per minute; otherwise one shouty client ties up every donkey and the rest of the village waits.
+
+---
+
+## Lab 8: LLM-as-Judge Evaluation — "Can a smarter LLM grade the gateway's routing choices?"
+
+**Config:** `EVAL_MODE` (default: `rule_based`)
+**What it controls:** Whether evaluation uses Python rules (cheap, deterministic) or a second LLM call (expensive, semantic) — and for the gateway, whether the judge also scores ROUTING CORRECTNESS ("did this query deserve a Sonnet, or could a Haiku have handled it?").
+**Hypothesis:** Rule-based eval misses semantic hallucinations AND has no opinion on whether the gateway over-spent (sent a trivial query to Sonnet) or under-spent (sent a hard query to Haiku and got a bad answer). LLM-as-judge catches both at ~$0.001/eval.
+
+### Why this matters
+Rule-based evaluation (`EVAL_MODE=rule_based`) checks faithfulness keyword overlap on whatever the routed model returned. It's free and instant — but it cannot tell whether the gateway's router made a SMART or DUMB routing choice. A correct answer from the wrong (too-expensive) model is a silent budget leak.
+
+LLM-as-judge (`EVAL_MODE=llm_judge`) sends the question, the routing decision (which model + why), the routed model's answer, and the cost/latency to a second cheap LLM with a rubric that scores BOTH answer quality AND routing fit. It catches the failure mode where Sonnet was used for "What is 17×23?" or Haiku was used for a multi-step reasoning task.
+
+### Setup
+1. Add `EVAL_MODE=rule_based` to `.env`
+2. Pick a "judge" LLM in `.env`:
+   - Local: `JUDGE_LLM_PROVIDER=ollama` + `JUDGE_LLM_MODEL=llama3.2`
+   - AWS: `JUDGE_LLM_PROVIDER=bedrock` + `JUDGE_LLM_MODEL=anthropic.claude-haiku-...`
+   - Azure: `JUDGE_LLM_PROVIDER=azure_openai` + `JUDGE_LLM_MODEL=gpt-4o-mini`
+3. Implement the judge prompt (see template below) — it must take the routing decision, not just the answer
+4. Run Q1–Q3 with both modes
+5. Compare faithfulness scores AND the new routing-fit score
+
+### The judge prompt template
+```text
+You are a strict evaluator of an LLM gateway's routing decision AND its routed answer. Given:
+- QUESTION: {question}
+- AVAILABLE_MODELS: {model_catalog}    # e.g. {"haiku": "cheap, fast, simple Qs", "sonnet": "expensive, multi-step reasoning", "opus": "premium, only for hardest tasks"}
+- ROUTED_MODEL: {model}                # which model the gateway picked
+- ROUTING_REASON: {reason}             # gateway's stated reason (if any)
+- ANSWER: {answer}
+- COST_USD: {cost}
+- LATENCY_MS: {latency}
+
+Score on:
+1. answer_quality (0.0–1.0): Was the ANSWER correct and complete for the QUESTION?
+2. routing_fit (0.0–1.0): Was ROUTED_MODEL the cheapest model in AVAILABLE_MODELS that could have produced this answer quality? (1.0 = perfect fit; 0.5 = over- or under-spent by one tier; 0.0 = badly mis-routed.)
+3. cost_efficiency (0.0–1.0): Given the answer quality, was COST_USD reasonable?
+
+Return strict JSON: {"answer_quality": 0.x, "routing_fit": 0.x, "cost_efficiency": 0.x, "should_have_routed_to": "haiku|sonnet|opus", "reason": "..."}
+```
+
+### Results table (fill in as you run)
+| Question | Routed model | Rule-based faithfulness | LLM-judge answer_quality | LLM-judge routing_fit | Should have routed to | Why? |
+|---|---|---|---|---|---|---|
+| Q1 (Explain RAG in 2 sentences) | ___ | ___ | ___ | ___ | haiku (simple) | Sonnet would be over-spend |
+| Q2 (Translate "good morning" → Dutch) | ___ | ___ | ___ | ___ | haiku (trivial) | Anything bigger is wasted |
+| Q3 (17 × 23) | ___ | ___ | ___ | ___ | haiku (or tool) | LLM-judge flags Sonnet as over-spend |
+
+### Cost comparison
+| Mode | Cost per eval | Latency added | Determinism |
+|---|---|---|---|
+| `rule_based` | €0 | ~1ms | ✅ Same input → same score |
+| `llm_judge` (Haiku) | ~$0.001 | ~500–1500ms | ❌ May vary slightly across runs |
+| `llm_judge` (GPT-4o) | ~$0.01 | ~1–3s | ❌ May vary |
+
+### What we learned
+Rule-based eval is the right default — it's free, fast, and catches obvious failures. For a gateway, LLM-as-judge is uniquely valuable because it can score ROUTING-FIT, which rules cannot. Production pattern: run rule-based on every request, run LLM-judge on samples flagged as marginal OR where COST_USD is in the top 5% (the expensive routes are the ones worth auditing), and run a daily nightly batch over the golden dataset. Never run LLM-judge on 100% of traffic — at gateway-scale traffic, the judge cost would dwarf the routed-model cost.
+
+### 🫏 Donkey takeaway
+Rule-based eval is a clipboard-with-checkboxes the stable master uses on every parcel. LLM-as-judge is the senior dispatcher who reviews a sample of trips and notices when a racehorse was sent to deliver a postcard next door — the parcel arrived, but the stable spent ten times what it should have. The clipboard tracks delivery; the dispatcher tracks the bill.
