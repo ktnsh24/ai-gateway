@@ -1,7 +1,9 @@
 # Observability Deep Dive — AI Gateway
 
 > **What:** Request logging, timing, tracing, and optional LangFuse integration
+>
 > **Why:** You can't improve what you can't measure — observability is critical for production LLM systems
+>
 > **Files:** `src/middleware/logging.py`, `src/middleware/auth.py`, `src/main.py`
 
 ---

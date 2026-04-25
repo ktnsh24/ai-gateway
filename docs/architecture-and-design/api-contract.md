@@ -1,7 +1,9 @@
 # API Contract — AI Gateway
 
 > **Base URL:** `http://localhost:8100`
+>
 > **Format:** OpenAI-compatible with gateway extensions
+>
 > **Auth:** Optional Bearer token
 
 ---

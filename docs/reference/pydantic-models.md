@@ -1,6 +1,7 @@
 # Pydantic Models Reference — AI Gateway
 
 > **File:** `src/models.py`
+>
 > **Pattern:** OpenAI-compatible request/response models with gateway extensions
 
 ---

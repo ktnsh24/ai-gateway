@@ -1,7 +1,9 @@
 # Cost Tracking Deep Dive — AI Gateway
 
 > **What:** Per-request usage logging with aggregation queries for cost dashboards
+>
 > **Why:** LLM costs are opaque — tracking per-request gives visibility and control
+>
 > **File:** `src/gateway/cost_tracker.py`
 
 ---

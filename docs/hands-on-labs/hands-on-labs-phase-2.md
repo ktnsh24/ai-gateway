@@ -1,7 +1,9 @@
 # Hands-on Labs — Phase 2: Production Features
 
 > **Labs 5-8:** Cost tracking, health checks, observability, Docker Compose
+>
 > **Time:** ~2 hours total
+>
 > **Prerequisites:** Labs 1-4 completed, Docker + Docker Compose installed
 
 ---

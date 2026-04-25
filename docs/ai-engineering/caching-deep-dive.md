@@ -1,7 +1,9 @@
 # Caching Deep Dive — AI Gateway
 
 > **What:** Semantic caching stores LLM responses and returns them for identical or semantically similar requests
+>
 > **Why:** Reduces latency from seconds to milliseconds, eliminates redundant LLM costs
+>
 > **File:** `src/gateway/cache.py`
 
 ---

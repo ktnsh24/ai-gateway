@@ -1,7 +1,9 @@
 # Architecture Overview — AI Gateway
 
 > **Pattern:** Strategy Pattern with ABC interfaces and factory methods
+>
 > **Framework:** FastAPI + LiteLLM
+>
 > **Port:** 8100
 
 ---

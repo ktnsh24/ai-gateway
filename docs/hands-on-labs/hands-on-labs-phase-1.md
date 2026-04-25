@@ -1,7 +1,9 @@
 # Hands-on Labs — Phase 1: Gateway Foundation
 
 > **Labs 1-4:** Build and test the core gateway components step by step
+>
 > **Time:** ~2 hours total
+>
 > **Prerequisites:** Poetry, Ollama with llama3.2 + nomic-embed-text
 
 ---

@@ -1,7 +1,9 @@
 # Rate Limiting Deep Dive — AI Gateway
 
 > **What:** Per-key rate limiting using fixed-window counters
+>
 > **Why:** Protects LLM providers from abuse, ensures fair usage, controls costs
+>
 > **File:** `src/gateway/rate_limiter.py`
 
 ---

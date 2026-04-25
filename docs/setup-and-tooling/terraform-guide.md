@@ -1,6 +1,7 @@
 # Terraform Guide — AI Gateway
 
 > **Platforms:** AWS (ECS + ElastiCache + RDS) and Azure (Container Apps + Redis + PostgreSQL)
+>
 > **Files:** `infra/aws/main.tf`, `infra/azure/main.tf`
 
 ---

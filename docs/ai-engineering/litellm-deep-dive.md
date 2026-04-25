@@ -1,7 +1,9 @@
 # LiteLLM Deep Dive — AI Gateway
 
 > **What:** LiteLLM provides a unified interface to 100+ LLM providers using OpenAI-compatible format
+>
 > **Why:** Single integration point — switch providers by changing one env var
+>
 > **File:** `src/gateway/router.py`
 
 ---

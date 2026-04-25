@@ -1,6 +1,7 @@
 # Docker Compose Guide — AI Gateway
 
 > **Services:** app (FastAPI), Redis 7, PostgreSQL 16, LangFuse (optional)
+>
 > **File:** `docker-compose.yml`
 
 ---
