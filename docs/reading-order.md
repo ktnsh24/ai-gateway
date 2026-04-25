@@ -62,11 +62,11 @@ The gateway exposes an OpenAI-compatible HTTP surface. Start with the contract, 
 | # | Document | What you'll learn | 🫏 Donkey |
 |---|----------|-------------------|-----------|
 | 12 | [API Contract](architecture-and-design/api-contract.md) | All routes at a glance, request/response shapes, status codes | The full sign-board on the stable's front door — every window, what slip goes in, what package comes out. |
-| 13 | [Completions Endpoint](architecture-and-design/api-routes/completions-endpoint-explained.md) *(see batch B)* | `POST /v1/chat/completions` — the main RAG-style call | The main delivery window — hand in a question slip, get back a written answer carried by whichever donkey was on duty. |
-| 14 | [Embeddings Endpoint](architecture-and-design/api-routes/embeddings-endpoint-explained.md) *(see batch B)* | `POST /v1/embeddings` — turn text into vectors | The GPS-coordinate writer — text in, fixed-length coordinates out, ready to be shelved in the warehouse. |
-| 15 | [Models Endpoint](architecture-and-design/api-routes/models-endpoint-explained.md) *(see batch B)* | `GET /v1/models` — list available providers | The roster pinned to the dispatcher's wall — every donkey currently on shift and what they're certified to carry. |
-| 16 | [Usage Endpoint](architecture-and-design/api-routes/usage-endpoint-explained.md) *(see batch B)* | `GET /v1/usage` — read the cost ledger | The expense-ledger window — open the leather book and read this week's totals by provider and API key. |
-| 17 | [Health Endpoint](architecture-and-design/api-routes/health-endpoint-explained.md) *(see batch B)* | `GET /healthz` and `GET /readyz` — liveness + readiness | "Is the donkey awake?" check — quick yes/no plus whether the pigeon-holes and ledger are reachable. |
+| 13 | [Completions Endpoint](architecture-and-design/api-routes/completions-endpoint-explained.md) | `POST /v1/chat/completions` — the main RAG-style call | The main delivery window — hand in a question slip, get back a written answer carried by whichever donkey was on duty. |
+| 14 | [Embeddings Endpoint](architecture-and-design/api-routes/embeddings-endpoint-explained.md) | `POST /v1/embeddings` — turn text into vectors | The GPS-coordinate writer — text in, fixed-length coordinates out, ready to be shelved in the warehouse. |
+| 15 | [Models Endpoint](architecture-and-design/api-routes/models-endpoint-explained.md) | `GET /v1/models` — list available providers | The roster pinned to the dispatcher's wall — every donkey currently on shift and what they're certified to carry. |
+| 16 | [Usage Endpoint](architecture-and-design/api-routes/usage-endpoint-explained.md) | `GET /v1/usage` — read the cost ledger | The expense-ledger window — open the leather book and read this week's totals by provider and API key. |
+| 17 | [Health Endpoint](architecture-and-design/api-routes/health-endpoint-explained.md) | `GET /health` — combined liveness + readiness with Redis/Postgres probes | "Is the donkey awake?" check — quick yes/no plus whether the pigeon-holes and ledger are reachable. |
 | 18 | [Pydantic Models](reference/pydantic-models.md) | Request/response schemas, validation rules | The parcel-size rules — the exact shape every slip and package must fit before the dispatcher will touch them. |
 
 ---
@@ -78,8 +78,8 @@ How the gateway deploys to AWS and Azure.
 | # | Document | What you'll learn | 🫏 Donkey |
 |---|----------|-------------------|-----------|
 | 19 | [Terraform Guide](setup-and-tooling/terraform-guide.md) | Run `terraform apply`/`destroy` for AWS and Azure stacks | How to use the stable blueprints — one command builds the whole dispatch building, another tears it down safely. |
-| 20 | [Infrastructure Explained](architecture-and-design/infra-explained.md) *(see batch B)* | Terraform modules, IAM roles, networking — what each resource is for | The blueprint annotations — every wall, wire, and gate, plus why it has to be exactly there. |
-| 21 | [CI/CD Explained](architecture-and-design/cicd-explained.md) *(see batch B)* | GitHub Actions pipeline, eval gates, deployment flow | The robot stable hand — runs the report card on every push and only opens the gate to production if every donkey passed. |
+| 20 | [Infrastructure Explained](architecture-and-design/infra-explained.md) | Terraform modules, IAM roles, networking — what each resource is for | The blueprint annotations — every wall, wire, and gate, plus why it has to be exactly there. |
+| 21 | [CI/CD Explained](architecture-and-design/cicd-explained.md) | GitHub Actions pipeline, eval gates, deployment flow | The robot stable hand — runs the report card on every push and only opens the gate to production if every donkey passed. |
 
 ---
 
@@ -91,7 +91,7 @@ Measure what the gateway costs you and how well it behaves.
 |---|----------|-------------------|-----------|
 | 22 | [Cost Analysis](ai-engineering/cost-analysis.md) | Token cost per provider, monthly projections, cache savings | The accountant's view of the ledger — how much each provider charges per cargo unit and where the cache cuts the bill. |
 | 23 | [Testing](ai-engineering/testing.md) | Unit + integration test inventory, the in-memory pattern that makes Redis/PostgreSQL optional in tests | Quality gates before each shift — every component checked alone, then the full pipeline run end to end. |
-| 24 | [Monitoring](reference/monitoring.md) *(see batch B)* | Prometheus + Grafana setup, key dashboards | The CCTV control room — Prometheus counts every move; Grafana shows it on the live screen. |
+| 24 | [Monitoring](reference/monitoring.md) | Structured logs, cost rows, health probes, optional LangFuse — what we record and how to read it | The CCTV control room — four signal feeds wired into the wall (tachograph tape, leather ledger, porch lamp, optional CCTV) and how the operator reads them. |
 
 ---
 
