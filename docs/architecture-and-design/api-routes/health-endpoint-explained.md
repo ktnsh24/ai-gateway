@@ -14,7 +14,7 @@
 
 ## Table of Contents
 
-- [Plain-English Walkthrough (Start Here)](#plain-english-walkthrough-start-here)
+- [Architecture Walkthrough (Start Here)](#architecture-walkthrough-start-here)
 - [Endpoint Summary](#endpoint-summary)
 - [Request Schema](#request-schema)
 - [Response Schema](#response-schema)
@@ -25,77 +25,123 @@
 
 ---
 
-## Plain-English Walkthrough (Start Here)
+## Architecture Walkthrough (Start Here)
 
-> **Read this first if you're new to the gateway.** Same courier analogy as the [Completions Walkthrough](./completions-endpoint-explained.md#plain-english-walkthrough-start-here). This explains what's specific about the health endpoint.
+> This walkthrough explains what really happens when a request hits `GET /health`. It is a public, unauthenticated endpoint that runs four sub-checks and assembles a response object — but contains several notable honesty gaps between what the response implies and what the code actually verifies.
 
-### What is this endpoint for?
+---
 
-`GET /health` is the **"is the courier office open?"** check. Load balancers, Kubernetes liveness probes, and Docker healthchecks all hit this endpoint to decide whether the gateway is alive and able to serve traffic. It's also the easiest debugging tool — one curl tells you whether Redis and PostgreSQL are reachable from the gateway's pod.
+### How the app is assembled at startup
 
-> **Courier version.** This is the **porch lamp** at the depot, plus a quick wave through the back rooms: "Is the dispatcher at her desk? Are the pickup lockers powered on? Is the leather ledger book where it should be?" The reply is a single status card.
+The **Factory Method** builds all four components on `app.state` — `router`, `cache`, `rate_limiter`, `cost_tracker` — before the first request arrives. The health endpoint reads three of them: `cache`, `cost_tracker`, and `router`. If any of those components failed to assemble at startup, the health check will fail at the access point.
 
-### How it works
+`/health` is listed in `PUBLIC_PATHS`, so the `APIKeyMiddleware` bouncer passes all requests through without checking an auth header. There is no rate limit on this endpoint.
 
-There's no rate limit, no auth (it's in `PUBLIC_PATHS`), no logging beyond the standard request log, and no LLM call. The handler runs **four checks in sequence**:
+> **Courier version.** The porch light is always on; the gate guard waves through the health inspector without asking for a pass. The inspector then looks around the depot and reads back what she sees — but some of her instruments have known calibration issues.
 
-1. **Redis check.** It calls the cache's `stats()` method. If the cache is the no-op variant (caching disabled), it reports `enabled: false`, which the handler takes as "Redis check failed". Otherwise a successful `stats()` call means Redis answered.
-2. **PostgreSQL check.** It calls `cost_tracker.get_usage_summary(period="today")` and considers the database healthy if that call doesn't raise. **This is heavier than you'd expect** — it actually runs three SQL queries against `usage_logs` (total, by-model, by-provider). So a slow Postgres slows down `/health` proportionally.
-3. **Langfuse flag.** This is **not a real connectivity check** — it just reads the `langfuse_enabled` config flag and reports its value. Setting `LANGFUSE_ENABLED=true` will make this report `true` even if Langfuse itself is unreachable.
-4. **Models list.** It pulls the list of configured model IDs from the router (no probing — same hardcoded list as `/v1/models`).
+---
 
-### The big honest gotcha
+#### Step 1 — Redis probe
 
-Look carefully at the response shape:
+The handler calls `cache.stats()` and interprets the result to produce `redis_connected`:
 
-```jsonc
-{
-  "status": "healthy",       // ← always "healthy", regardless of the checks below
-  "version": "0.1.0",
-  "provider": "aws",
-  "redis_connected": false,  // ← can be false
-  "database_connected": false, // ← can be false
-  "langfuse_connected": true,  // ← reflects config, not connectivity
-  "models_available": ["bedrock/anthropic.claude-3-sonnet", ...]
-}
-```
+| Cache implementation | `stats()` returns | `redis_ok` value |
+| --- | --- | --- |
+| `RedisSemanticCache` (Redis reachable) | `{"enabled": True, …}` | `True` |
+| `InMemoryCache` | `{"enabled": True, …}` | `True` |
+| `NoCache` | `{"enabled": False}` | `False` |
 
-The top-level `status` field is **hardcoded to `"healthy"`**. It does not aggregate the connectivity flags below. So if Redis is down and Postgres is down, the response still says `status: "healthy"` and your load balancer thinks everything is fine. This is a real bug — not a stylistic choice. If you're using `/health` for liveness, you should configure your probe to also assert `redis_connected == true` and `database_connected == true`, not just `status == "healthy"`.
+**Misleading result when cache is intentionally disabled.** `NoCache.stats()` returns `{"enabled": False}`, so `stats.get("enabled", True)` evaluates to `False`, and `redis_ok` becomes `False`. The response then shows `redis_connected: false` — which a monitoring tool will interpret as "Redis is down", when in fact Redis was simply never configured. There is no way to distinguish "Redis down" from "caching intentionally off" in the health response.
 
-### A worked example
+> **Courier version.** The inspector checks whether the pickup locker shelf is powered on. If the shelf was never installed (caching disabled), the inspector's report still says "shelf off" — the same reading as if the shelf is installed but broken. Two different situations; one reading.
 
-You hit `/health` while Redis is unreachable but Postgres is fine:
+---
 
-```jsonc
-{
-  "status": "healthy",
-  "version": "0.1.0",
-  "provider": "aws",
-  "redis_connected": false,    // ← real signal
-  "database_connected": true,
-  "langfuse_connected": false,
-  "models_available": [...]
-}
-```
+#### Step 2 — PostgreSQL probe
 
-A naive Kubernetes probe checking `status == "healthy"` keeps the pod in rotation even though caching and rate limiting are silently degrading to in-memory and producing inconsistent behaviour across replicas.
+The handler calls `cost_tracker.get_usage_summary(period="today")` and considers the database healthy if that call does not raise.
 
-### Quirks worth knowing
+| Cost tracker implementation | Behaviour | `db_ok` value |
+| --- | --- | --- |
+| `PostgresCostTracker` (DB reachable) | Runs 3 SQL queries; returns data | `True` |
+| `PostgresCostTracker` (DB unreachable) | Raises exception | `False` |
+| `InMemoryCostTracker` | Returns in-memory data; does not raise | `True` |
+| `NoCostTracker` | Returns `{"enabled": False}`; does not raise | `True` |
 
-1. **`status` is always `"healthy"`** regardless of the checks below it. Use the boolean flags, not the status string.
-2. **The DB check runs three SQL queries** (it reuses `get_usage_summary`). On a large `usage_logs` table without indexes, `/health` itself can become slow.
-3. **Langfuse "connected" really means "configured"** — no actual ping is made.
-4. **Returns 200 even when checks fail.** The endpoint never returns a non-200 code. So orchestrators that interpret a 5xx as "unhealthy" will never see it from this endpoint.
-5. **No version of "starting up" vs "ready"** — only one status. If the LLM router is still warming on first call, `/health` already says healthy.
-6. **No auth** — the endpoint is publicly reachable. That's standard for liveness probes but means anyone hitting your gateway URL can read the model list and the connectivity state of your backends.
+**Heavyweight probe.** `get_usage_summary(period="today")` runs three SQL queries — aggregate totals, group-by-model, and group-by-provider — on every health check. On a large `usage_logs` table, `/health` becomes slow because of this probe.
+
+**Misleading result when cost tracking is disabled.** `NoCostTracker.get_usage_summary()` returns without raising, so `db_ok` becomes `True` — the response shows `database_connected: true` even when no database is configured.
+
+> **Courier version.** The inspector checks the ledger by asking the clerk to run the full weekly summary. If the clerk has no ledger (cost tracking disabled), she hands back a blank page — the inspector marks "ledger: ok" because no error was raised. A proper probe would be "can you find the ledger book?" not "can you summarise last week?".
+
+---
+
+#### Step 3 — Models list
+
+The handler calls `router.list_models()` and collects the model IDs into `models_available`. This is the same hardcoded in-memory read as the `/v1/models` endpoint. No live provider probing occurs.
+
+`models_available` shows what the router is configured to know about, not what is currently responding. A provider outage is invisible here.
+
+> **Courier version.** The inspector copies the wall roster into her report. If half the couriers called in sick, the roster still shows their names — the inspector has no way to check who is actually at their desk.
+
+---
+
+#### Step 4 — Response assembly
+
+The handler assembles a `HealthStatus` object from the four probe results plus static fields.
+
+**`status` field is hardcoded `"healthy"`.** The return statement is literally `status="healthy"` — it does not aggregate `redis_ok` and `db_ok`. A response with `redis_connected: false` and `database_connected: false` still returns `status: "healthy"`.
+
+**`langfuse_connected` is not a probe.** The field is set to `settings.langfuse_enabled` — a boolean config flag. No ping to Langfuse is made. Setting `LANGFUSE_ENABLED=true` in the environment returns `langfuse_connected: true` even if Langfuse is unreachable.
+
+**Worked example — degraded state that still reports healthy:**
+
+| Probe | Reality | Value in response |
+| --- | --- | --- |
+| `status` | Redis down, Postgres down | `"healthy"` — hardcoded |
+| `redis_connected` | Redis unreachable | `false` |
+| `database_connected` | Postgres unreachable | `false` |
+| `langfuse_connected` | Langfuse unreachable (but config says enabled) | `true` — config flag only |
+| `models_available` | Provider offline | list still populated — hardcoded |
+
+A Kubernetes liveness probe that only checks `status == "healthy"` will keep the pod in rotation even when both Redis and Postgres are down, leading to silent degraded behaviour across replicas.
+
+> **Courier version.** The inspector files her report with a pre-stamped header that always says "DEPOT OPEN". The individual checkboxes below can all be ticked "problem", but the header never changes. A load balancer reading only the header will think the depot is fine.
+
+---
+
+### Condition matrix
+
+| Scenario | `redis_connected` | `database_connected` | `langfuse_connected` | `status` field | HTTP status |
+| --- | --- | --- | --- | --- | --- |
+| All systems healthy | `true` | `true` | reflects config | `"healthy"` | 200 |
+| Redis down, Postgres ok | `false` | `true` | reflects config | `"healthy"` | 200 |
+| Redis disabled (NoCache) | `false` | `true` | reflects config | `"healthy"` | 200 |
+| Postgres down | `true` | `false` | reflects config | `"healthy"` | 200 |
+| Cost tracking disabled (NoCostTracker) | `true` | `true` | reflects config | `"healthy"` | 200 |
+| Both Redis and Postgres down | `false` | `false` | reflects config | `"healthy"` | 200 |
+| Langfuse unreachable but enabled in config | — | — | `true` | `"healthy"` | 200 |
+
+---
+
+### 🩺 Honest health check
+
+1. **`status: "healthy"` is hardcoded regardless of probe results.** A monitoring tool that checks only the `status` field will never see a degraded signal. Fix: derive `status` from `redis_connected AND database_connected`; return `"degraded"` when any required component is down.
+2. **Postgres probe is heavyweight (3 SQL queries per health check).** Using `get_usage_summary()` as a liveness probe is expensive; on a large `usage_logs` table this slows every health check. Fix: replace with a simple `SELECT 1` query or a dedicated lightweight ping method on the cost tracker.
+3. **`langfuse_connected` reflects config, not connectivity.** It is not a real probe. Fix: add an HTTP ping to the Langfuse endpoint, or rename the field to `langfuse_enabled` to be honest about what it measures.
+4. **`redis_connected: false` is ambiguous.** It means either "Redis is unreachable" or "caching is intentionally disabled". Fix: add a separate `cache_enabled` field so operators can distinguish configuration intent from operational failure.
+5. **`database_connected: true` when cost tracking is disabled.** `NoCostTracker` does not raise, so the probe reports healthy. Fix: add a separate `cost_tracking_enabled` field alongside `database_connected`.
+6. **`models_available` is a hardcoded list, not a live provider check.** Providers can be down while the list shows their models. Fix: add an optional live-probe mode, or document that this list reflects startup config only.
+
+---
 
 ### TL;DR
 
-- One endpoint, four checks (Redis, Postgres, Langfuse-flag, models list), no auth, no rate limit.
-- Top-level `status` is **hardcoded `"healthy"`** — don't trust it; check the boolean flags instead.
-- The Postgres check is heavy (three SQL queries) — be mindful on large `usage_logs` tables.
-- Always returns 200, even on failure — load balancers expecting non-2xx for unhealthy won't trigger.
-
+- **Factory Method** wires all four components at startup; the health endpoint reads three of them (`cache`, `cost_tracker`, `router`).
+- **Four probes**: Redis (via `cache.stats()`), Postgres (via a heavyweight 3-query `get_usage_summary()`), Langfuse (config flag only), and models list (hardcoded).
+- **`status: "healthy"` is always hardcoded** — the probe results do not influence it; monitoring tools must check the boolean flags directly.
+- **Ambiguous disabled-vs-down signals**: `NoCache` reports `redis_connected: false`; `NoCostTracker` reports `database_connected: true`.
+- The endpoint always returns HTTP 200 — orchestrators expecting 5xx on unhealthy will never see it from this route.
 ---
 
 ## Endpoint Summary

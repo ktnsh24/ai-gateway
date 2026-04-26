@@ -15,7 +15,7 @@
 
 ## Table of Contents
 
-- [Plain-English Walkthrough (Start Here)](#plain-english-walkthrough-start-here)
+- [Architecture Walkthrough (Start Here)](#architecture-walkthrough-start-here)
 - [Endpoint Summary](#endpoint-summary)
 - [Request Schema](#request-schema)
 - [Response Schema](#response-schema)
@@ -26,98 +26,112 @@
 
 ---
 
-## Plain-English Walkthrough (Start Here)
+## Architecture Walkthrough (Start Here)
 
-> **Read this first if you're new to the gateway.** Same courier analogy as the [Completions Walkthrough](./completions-endpoint-explained.md#plain-english-walkthrough-start-here). This explains what's specific about the cost-and-usage endpoint.
+> This walkthrough explains what really happens when a request hits `GET /v1/usage`. It is a pure read endpoint — no LLM call, no cache, no rate limit check — just a structured query against the cost ledger.
 
-### What is this endpoint for?
+---
 
-`GET /v1/usage` is the **read side of the cost ledger**. While every chat and embedding request *writes* a row to the ledger (Step 5 of the completions pipeline), this endpoint *reads* the ledger and returns a summary: how many requests today, how many tokens, how many dollars, what fraction was cached, broken down by model and provider.
+### How the app is assembled at startup
 
-> **Courier version.** This is the **expense-ledger window** at the depot. You walk up, ask "what did this account spend today?", and the clerk flips open the leather book, runs his finger down the right column, and reads back the totals.
+The **Factory Method** builds the `cost_tracker` component on `app.state` using `create_cost_tracker(settings)`. Three possible implementations:
 
-### How it works
+| Implementation | Backing store | Behaviour |
+| --- | --- | --- |
+| `PostgresCostTracker` | PostgreSQL `usage_logs` table | Runs real SQL queries; lazily creates the table on first use |
+| `InMemoryCostTracker` | In-process Python list | Reduces the list on each call; resets on restart |
+| `NoCostTracker` | None | Returns `{"enabled": False}` without raising |
 
-The handler is dead simple: it pulls the API key from the `Authorization` header (or falls back to the master key in dev), then asks the cost tracker for a summary of that key's activity over the requested period. There's **no pipeline, no rate limit, no LLM call** — just a database read.
+If the factory fails and `cost_tracker` is never placed on `app.state`, requests to this endpoint fail at the first access.
 
-In production the cost tracker is PostgreSQL, so a usage call runs three SQL queries against the `usage_logs` table:
+> **Courier version.** The ledger clerk is hired at opening time. If PostgreSQL is reachable, she gets the leather book. If not, she gets a pocket notebook. If cost tracking is fully disabled, she is not hired at all — but she still answers the window and hands back a note that says "ledger not active".
 
-1. **Aggregate row.** `COUNT(*)`, `SUM(total_tokens)`, `SUM(estimated_cost_usd)`, `AVG(latency_ms)`, and the cache-hit fraction (`SUM(CASE WHEN cached THEN 1 ELSE 0 END) / COUNT(*)`).
-2. **Breakdown by model.** A `GROUP BY model` to count requests per model, sorted descending.
-3. **Breakdown by provider.** A `GROUP BY provider` to sum dollars per provider.
+---
 
-All three are filtered by the time window and by the caller's API key (truncated to the first 32 characters — same truncation the writer uses).
+#### Step 1 — Auth check
 
-### The `period` parameter — and what it really means
+`/v1/usage` is not in `PUBLIC_PATHS`. The `APIKeyMiddleware` bouncer requires a valid `Authorization: Bearer <key>` header when auth is enabled. The extracted key is also used to filter the cost ledger — callers can only read their own rows.
 
-You can pass `?period=today` (default), `?period=week`, or `?period=month`. Here's the literal definition the code uses:
+In dev mode with auth disabled, every anonymous caller is treated as the master key. Because all anonymous dev requests write under the master key, the usage summary in this mode looks like an aggregate view of all traffic — it is not; it is everyone sharing one bucket.
 
-| `period` value | Time window |
+> **Courier version.** You need your pass to open the ledger window. And the ledger clerk only shows you your own tab. In dev, everyone uses the same guest pass and accidentally reads the combined total of all guest journeys.
+
+---
+
+#### Step 2 — Period resolution
+
+The `period` query parameter controls the time window. The implementation defines the boundaries as follows:
+
+| `period` value | Time window | Boundary type |
+| --- | --- | --- |
+| `today` | UTC midnight of the current day to now | Exact midnight — not rolling |
+| `week` | Last 7 days from now | Rolling |
+| `month` | Last 30 days from now | Rolling |
+
+`today` is the only period whose boundary is a fixed clock point (midnight UTC). `week` and `month` are rolling intervals from "now".
+
+**UTC midnight trap.** An engineer in UTC+5:30 at 04:00 local time sees only 4 hours of "today" data, not their full business day. The UTC anchor affects anyone outside UTC.
+
+**Worked example — period boundary comparison:**
+
+| Caller's timezone | Local time | UTC time | `today` window |
+| --- | --- | --- | --- |
+| UTC | 15:00 | 15:00 UTC | 00:00–15:00 UTC (15 hours of data) |
+| IST (UTC+5:30) | 10:30 | 05:00 UTC | 00:00–05:00 UTC (only 5 hours of data) |
+| US/Pacific (UTC-8) | 10:00 | 18:00 UTC | 00:00–18:00 UTC (18 hours — spans overnight) |
+
+> **Courier version.** The ledger only marks the boundary between "yesterday" and "today" at midnight Greenwich time. An engineer in Mumbai asking "what did we spend today?" at 10:30 AM local will only see the last 5 hours of UTC data — her day started 5.5 hours before UTC did.
+
+---
+
+#### Step 3 — Three SQL queries per call
+
+When `PostgresCostTracker` is active, `get_usage_summary()` runs exactly three SQL queries against the `usage_logs` table, all filtered by `api_key` and the time window:
+
+| Query | Purpose |
 | --- | --- |
-| `today` | From midnight **UTC** of the current day to now |
-| `week` | The last 7 days from now |
-| `month` | The last 30 days from now |
-| anything else | The last 1 day from now (a hidden default) |
+| 1 — Aggregate | `COUNT(*)`, `SUM(total_tokens)`, `SUM(estimated_cost_usd)`, `AVG(latency_ms)`, cache-hit fraction |
+| 2 — Group by model | `GROUP BY model` — request count per model, sorted descending |
+| 3 — Group by provider | `GROUP BY provider` — total USD per provider |
 
-A worked example. It's 02:00 in London (so 02:00 UTC, give or take). You hit `?period=today`. The window is from 00:00 UTC today to 02:00 UTC today — only the last two hours. If you're in IST (UTC+5:30), it's 07:30 in the morning at home but the window is still the last two hours of UTC. **`today` doesn't mean "today in your timezone"; it means "today in UTC".** This bites people from non-UTC zones who expect to see their full local-day activity.
+Three queries run on every usage request, with no caching of the result. On a small `usage_logs` table this is fast; on a large table without an index on `(api_key, created_at)` all three queries degrade to full table scans.
 
-`week` and `month` are *rolling* windows — they don't reset at the start of a calendar week or month. Asking on Tuesday afternoon for `week` gives you the previous Tuesday afternoon to now.
+When `NoCostTracker` is active, `get_usage_summary()` returns `{"enabled": False}` without hitting any database. The handler constructs an empty summary object — there is no indication in the response that tracking is disabled, just zeroed-out fields.
 
-### The "you only see your own bill" rule
+> **Courier version.** The ledger clerk does three things when you ask for your totals: she counts your slips, adds up the costs by parcel type, then adds them up again by which post office handled each one. Three ledger-flips every time you ask, with no shortcuts.
 
-The endpoint **filters by your API key**. There's no admin view, no global "show me everyone's spend" mode. If you call this with key A you see A's totals; if you call with key B you see B's totals. That's a privacy-by-default choice and it's the right one for a multi-tenant gateway, but it does mean you cannot use this endpoint as the operator's overall cost dashboard.
+---
 
-For operator-wide views you'd query the `usage_logs` table directly in PostgreSQL — or build a separate admin endpoint. Today neither exists in the code.
+### Condition matrix
 
-### The dev-mode footgun
+| Scenario | Auth check | Period resolved | Queries run | Status |
+| --- | --- | --- | --- | --- |
+| Auth disabled, tracking enabled | skipped | yes | 3 SQL | 200 |
+| Auth enabled, valid key, tracking enabled | passes | yes | 3 SQL | 200 |
+| Auth enabled, missing key | 401 | — | — | 401 |
+| Tracking disabled (`NoCostTracker`) | passes | yes | none (returns empty dict) | 200 (zeroed fields, no "disabled" flag) |
+| Postgres down | passes | yes | fails | 500 |
+| `period=today` from UTC+5:30 at 04:00 local | passes | yes (only 4h of UTC data) | 3 SQL | 200 (misleadingly short window) |
 
-If API keys are turned off, the handler treats every anonymous caller as the master key. So `curl http://localhost:8100/v1/usage` in dev returns the **master key's totals** — which, because every anonymous request also wrote rows under the master key, includes basically everyone's traffic. It looks like an admin view but it isn't — it's just everybody using the same bucket.
+---
 
-### What you get back
+### 🩺 Honest health check
 
-```jsonc
-{
-  "summary": {
-    "period": "today",
-    "total_requests": 142,
-    "total_tokens": 38_201,
-    "total_cost_usd": 0.0421,
-    "avg_latency_ms": 327.45,
-    "cache_hit_rate": 0.18,
-    "requests_by_model": {
-      "azure/gpt-4": 87,
-      "bedrock/anthropic.claude-3-sonnet": 41,
-      "ollama/llama3": 14
-    },
-    "cost_by_provider": {
-      "azure": 0.0398,
-      "aws":   0.0023,
-      "local": 0.0000
-    }
-  },
-  "api_key": "sk-abcd12..."
-}
-```
+1. **`today` uses UTC midnight, not the caller's local midnight.** Engineers outside UTC see a truncated "today" that does not correspond to their business day. Fix: accept a `timezone` query parameter, or at minimum document the UTC assumption in the API response.
+2. **Three SQL queries on every call with no result caching.** On a large unindexed `usage_logs` table, `/v1/usage` becomes slow. Fix: add a composite index on `(api_key, created_at)`, and consider caching the aggregate result at 60-second granularity.
+3. **`NoCostTracker` returns zeroed data with no indication tracking is off.** A caller with cost tracking disabled gets zero totals and has no way to know whether their usage is truly zero or tracking was never active. Fix: add a `"tracking_enabled": false` field to the response when `NoCostTracker` is active.
+4. **No global or admin view.** Every call is filtered to the calling key. Operators need direct database access for cross-key totals. Fix: add an admin endpoint or a separate reporting query that accepts an operator key.
+5. **The `/health` endpoint uses this same `get_usage_summary()` call** as its Postgres liveness probe, running 3 SQL queries on every health check. Fix: replace the health probe with a lightweight `SELECT 1` query instead of a full aggregate.
 
-The `api_key` field shows the first 8 characters followed by `...` — it's a sanity check ("yes, you're looking at the right key"), not a security exposure.
-
-### Quirks worth knowing
-
-1. **`today` means UTC midnight, not your local midnight.** Account for timezone offset when reading the number.
-2. **Three SQL queries per call** — `COUNT/SUM` aggregate plus two `GROUP BY` breakdowns. Cheap on small tables, but worth indexing `(api_key, created_at)` if `usage_logs` grows large.
-3. **No global/admin view** — every call is filtered to the calling key. Run SQL directly on `usage_logs` for operator-wide stats.
-4. **API keys are truncated to 32 chars** before storage and lookup. If you happen to use two keys that share the first 32 chars, their bills will be merged.
-5. **The cache-hit rate denominator is `COUNT(*)`**, not just LLM calls. So a window full of cache hits drives the rate towards 100% as you'd expect; a window with no traffic at all returns 0 rather than dividing by zero (the SQL uses `NULLIF`).
-6. **`/health` calls this endpoint internally** (it does a `get_usage_summary(period="today")` to check the database is reachable). So a slow PostgreSQL slows down `/health` too.
+---
 
 ### TL;DR
 
-- Read-only window onto the cost ledger; **per-API-key**, never global.
-- Time periods are UTC-based (`today` = since UTC midnight) and `week`/`month` are rolling 7/30 days.
-- Three SQL queries per call: total, by model, by provider.
-- Dev-mode anonymous calls share the master key, which can look like an admin view but isn't.
-- For operator-wide totals, query the `usage_logs` table directly — no admin endpoint exists.
-
+- **Read-only ledger query** — per-API-key, no LLM call, no cache, no rate limit.
+- **Three SQL queries per call** (aggregate + by-model + by-provider); no result caching; degrade on large unindexed tables.
+- **`today` = UTC midnight boundary** (fixed point); `week` and `month` are rolling intervals from now.
+- **`NoCostTracker`** returns zeroed fields silently — no response signal that cost tracking is disabled.
+- **Factory Method** selects the tracker implementation at startup based on Postgres reachability.
 ---
 
 ## Endpoint Summary

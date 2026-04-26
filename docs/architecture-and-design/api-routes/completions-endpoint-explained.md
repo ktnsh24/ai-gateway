@@ -17,7 +17,7 @@
 
 ## Table of Contents
 
-- [Plain-English Walkthrough (Start Here)](#plain-english-walkthrough-start-here)
+- [Architecture Walkthrough (Start Here)](#architecture-walkthrough-start-here)
 - [Endpoint Summary](#endpoint-summary)
 - [Request Schema](#request-schema)
 - [Response Schema](#response-schema)
@@ -28,149 +28,187 @@
 
 ---
 
-## Plain-English Walkthrough (Start Here)
+## Architecture Walkthrough (Start Here)
 
-> **Read this section first if you're new to the gateway.** Everything below it (schemas, internal flow, error tables) is reference material that makes more sense once you have the mental picture from this section.
+> This walkthrough explains what really happens when a request hits `POST /v1/chat/completions` — every design pattern, every algorithm, every branch, every known quirk. No code snippets, no file paths — patterns and trade-offs only.
 
-This walkthrough explains, in plain English with worked examples, what really happens when someone calls `POST /v1/chat/completions`. It uses a **courier** analogy throughout: think of the gateway as a busy city courier office that takes letters (your prompts), figures out which post office to send them to (AWS, Azure, Local), and brings the reply back. Wherever something gets technical, the courier shows up to keep it simple.
+---
 
-> *Note on the analogy.* Some earlier conversations called this the "donkey analogy" — courier and donkey are interchangeable in our docs. The point is: somebody picks up your letter, follows rules, and brings an answer back.
+### How the app is assembled at startup
 
-### The shape of the courier office
+Before the first request arrives, the application lifespan function runs a **Factory Method + Strategy Pattern** to build four components and store them on `app.state`:
 
-Before any clever work happens, every request walks through a small **front desk** made of three layers stacked on top of each other.
+| Component | Factory call | Possible implementations |
+| --- | --- | --- |
+| `router` | `create_router(settings)` | `LiteLLMRouter` (only one today) |
+| `cache` | `create_cache(settings)` | `RedisSemanticCache`, `InMemoryCache`, `NoCache` |
+| `rate_limiter` | `create_rate_limiter(settings)` | `RedisRateLimiter`, `InMemoryRateLimiter`, `NoRateLimiter` |
+| `cost_tracker` | `create_cost_tracker(settings)` | `PostgresCostTracker`, `InMemoryCostTracker`, `NoCostTracker` |
 
-**Layer 1 — CORS.** This is the polite doorman who never refuses anyone. He just stamps the right browser-friendly stickers on the envelope on its way back out so a website in another tab can read the reply. You can forget he exists; he never blocks anything.
+Every implementation shares an abstract base class — the handler never knows which concrete class it is talking to. The factory picks the implementation by probing whether Redis and Postgres are actually reachable at startup time. If Redis is unreachable, it silently falls back to the in-memory variant. If startup fails catastrophically and a component is never built, requests fail the moment they try to access `app.state`.
 
-**Layer 2 — The request logger (the boarding pass).** The moment your request walks in, the logger does two things:
+> **Courier version.** Before the depot opens, the manager runs through a checklist. She tries to phone head office (Redis), tries to open the central ledger (Postgres), and hires whichever team is available. If the Redis phone line is dead, she substitutes a clerk with a pocket notebook. If all else fails and some desk is not staffed by opening time, every customer who walks up to that desk gets turned away.
 
-1. Mints a short random ID — twelve hex characters like `a3f9b2c1d4e7` — and pins it to the request like a boarding pass.
-2. Starts a stopwatch.
+---
 
-That boarding pass shows up in every log line for that request. So when something goes wrong tomorrow, you grep for `a3f9b2c1d4e7` and you see the entire journey of that one letter from front desk to LLM and back. The stopwatch measures only what the gateway itself adds — not the LLM's own time. The boarding pass is also echoed back in two response headers: `X-Request-ID` and `X-Gateway-Latency-Ms`. So a curious client knows both *which* request this was and *how much overhead* the courier office added.
+### The three-layer front desk (middleware)
 
-**Layer 3 — API-key check (the bouncer).** This layer is *optional* — it's only mounted if API keys are turned on in config. When it is mounted, it works like a bouncer at a club:
+Every request — before it reaches any handler — walks through three middleware layers in order.
+
+**Layer 1 — CORSMiddleware.** The polite doorman. He stamps browser-friendly `Access-Control-*` headers on every outbound response so a web page on a different origin can read the reply. He never blocks anything; he exists purely for browsers.
+
+**Layer 2 — RequestLoggingMiddleware (the boarding pass).** The moment a request enters, the logger mints a 12-character hex request ID (`uuid4().hex[:12]`) and starts a stopwatch. Every log line for that request carries the ID, so you can trace the entire lifecycle with a single grep. On the way back out, the middleware stamps the response with `X-Request-ID` and `X-Gateway-Latency-Ms`.
+
+**Layer 3 — APIKeyMiddleware (the optional bouncer).** Mounted only if `auth_enabled=True`. It reads the `Authorization: Bearer <key>` header and checks the key against configured keys. Public paths (`/health`, `/docs`, `/redoc`) bypass it entirely. When auth is off, every anonymous caller is treated as the master key — they all share one rate-limit bucket.
 
 | What you show | What happens |
 | --- | --- |
-| Nothing — no `Authorization` header | **401 — "show me a card"** |
-| `Authorization: Banana abc` (no `Bearer `) | **401 — "wrong format"** |
-| `Authorization: Bearer ` (empty key) | **401 — "your card is blank"** |
-| `Authorization: Bearer wrong-key` | **403 — "card's not on the list"** |
-| `Authorization: Bearer right-key` | walks in |
+| No `Authorization` header | 401 — header missing |
+| Non-Bearer scheme (`Authorization: Token abc`) | 401 — wrong format |
+| `Authorization: Bearer ` (empty) | 401 — blank key |
+| `Authorization: Bearer wrong-key` | 403 — key not on the list |
+| `Authorization: Bearer right-key` | passes through |
 
-Public paths like `/health` and `/docs` skip the bouncer entirely.
+---
 
-> **In dev, the bouncer is usually off.** When that happens the handler treats every anonymous caller as if they used the master key. The practical consequence: **everyone shares one rate-limit bucket**. If your local script burns through the limit, your colleague's script gets blocked too.
+### The five-step pipeline
 
-### Inside the office — the five-step pipeline
-
-Once you're past the front desk, you arrive at the chat-completions handler, which is the courier's clipboard. The clipboard has five steps and they always run in this order:
+Once past the front desk, the completions handler runs these five steps in order. Any step that fails stops the pipeline immediately.
 
 ```
-1. Rate limit  →  2. Cache  →  3. LLM call  →  4. Cache write  →  5. Cost log
+1. Rate limit → 2. Cache check → 3. LLM call → 4. Cache write → 5. Cost log
 ```
 
-If any step says "stop", the steps after it don't run.
+---
 
-### Step 1 — The rate limiter (the courier's quota book)
+#### Step 1 — Rate limit
 
-Imagine the courier keeps a small notebook. Each customer (each API key) has one page. On that page he scratches a tally mark every time you send a letter. When the page fills up — say 60 marks — he refuses to take any more letters until the page resets. Every minute, he tears the page out and starts a fresh one. That's the **fixed-window counter**. Plain and effective.
+**Algorithm: Fixed-Window Counter** (the source code comment says "sliding window" — this is incorrect; the implementation is fixed-window).
 
-The rate limiter has three personalities, decided once at startup:
+The rate limiter checks whether the API key has exceeded its quota for the current 60-second window. The counter key is `gw:rate:{api_key}`.
 
-- **"No rules" (disabled).** The courier doesn't even open the notebook. Every request is allowed. Useful for tests and local dev.
-- **Redis (the proper notebook in head office).** When Redis is reachable, the notebook lives in Redis where every worker can read it. This is the production setup.
-- **In-memory (the notebook in the courier's pocket).** If Redis is configured but unreachable at startup, the gateway silently falls back to keeping the notebook in the Python process's memory. **This is a trap.** With 4 workers, each worker has its own notebook, so your "60 per minute" effectively becomes "240 per minute".
+There are three implementations, decided at startup:
 
-**Concrete example.** You have a limit of 5 requests/minute. You send requests at times 0s, 10s, 20s, 30s, 40s — all five are allowed. The 6th request at 50s comes back with:
-
-```
-HTTP 429 Too Many Requests
-Retry-After: 10
-{ "error": "rate_limit_exceeded", "retry_in_seconds": 10 }
-```
-
-At 60s the Redis key vanishes and the next request starts fresh from 1.
-
-**A quirk worth knowing:** the tally mark still gets added even on a rejected request. If a misbehaving client ignores the 429 and keeps hammering, the counter climbs to 61, 62, 100… It's harmless to Redis but you'll see big numbers in logs. The flip side: if your LLM call later fails for some other reason, **the tally mark is not erased**. A flaky provider can quietly burn through your customers' quotas without ever serving them an answer.
-
-If the limiter says no, **everything below this point is skipped**: no cache lookup, no LLM call, no cost log. Just the tally and a 429.
-
-### Step 2 — The cache (the courier's "I've seen this letter before" pile)
-
-The courier keeps a stack of recently-answered letters on a shelf. When a new letter arrives, he checks the shelf first: "have I answered this exact letter recently? If yes, just hand back the same reply — no need to bother the post office." That's the cache. But "exact letter" is the important phrase, and the way it decides "exact" is where most surprises live.
-
-**How the cache decides "is this the same letter?"** The cache turns the conversation messages into a fingerprint using SHA-256 — a math function that turns any text into a fixed-length string of letters and numbers. Two letters that are identical down to every comma produce the same fingerprint. Change one character and the fingerprint changes completely.
-
-**Concrete example.** Suppose two users both ask the assistant the same question. Look carefully at what's "the same" and what isn't:
-
-| Request | Messages | Fingerprint | Cache result |
-| --- | --- | --- | --- |
-| User A | `[{"role":"user","content":"What is 2+2?"}]` | `9f8d3a...` | MISS (first time) |
-| User B (one second later) | `[{"role":"user","content":"What is 2+2?"}]` | `9f8d3a...` | **HIT** — same fingerprint |
-| User C | `[{"role":"user","content":"what is 2+2?"}]` | `b41e09...` | MISS — lowercase `w` changed everything |
-| User D | `[{"role":"user","content":"What is 2+2 ?"}]` | `c772aa...` | MISS — extra space changed everything |
-| User E | `[{"role":"user","content":"What is 2 + 2?"}]` | `1d04b8...` | MISS — different spacing |
-
-So the cache is **strict**. It only helps when callers send byte-identical messages. In practice this means it works brilliantly for things like a chatbot's "starter prompt" that gets sent on every page load, and barely at all for natural human typing.
-
-> **Courier version.** Imagine the courier matches letters by photocopying them and laying the photocopy on the shelf. He compares pixel-by-pixel. If the new letter is in slightly different handwriting, or has an extra dot at the end, the photocopies won't match — even if a human would say they're "the same question".
-
-**What the docs promise vs. what the code does.** The cache is *advertised* as a "semantic cache" — meaning it should match letters by *meaning*, not by exact text. The plan was: turn each prompt into an embedding (a list of numbers that captures meaning), and if the new prompt's embedding is more than 92% similar to a cached one, return the cached answer. **The code for that path exists. The handler doesn't use it.** When the handler calls the cache, it doesn't pass an embedding along, so only the exact-fingerprint path runs. The semantic branch is dead wiring as of today.
-
-**Bypass.** A request can include `bypass_cache: true` in its body. When that's set, the cache *read* is skipped (you always get a fresh LLM answer) but the cache *write* still happens (the fresh answer refreshes the shelf for everyone else).
-
-**On a cache hit** the handler returns the cached response and **still writes a row to the cost log** with zero tokens, zero dollars, and `cached=true`. That's how the dashboards later compute "what % of our traffic was cached?".
-
-### Step 3 — The LLM router (the dispatch desk)
-
-If we got past the cache without a hit, it's time to actually send the letter to a post office. The dispatch desk is the **router**, and it knows about three post offices:
-
-- **AWS** (Bedrock — Anthropic, Llama, etc.)
-- **Azure** (Azure OpenAI — GPT-4, GPT-3.5)
-- **Local** (Ollama running on your laptop or a server)
-
-The router sends the same letter format to all three thanks to LiteLLM, which acts as a universal translator. Whichever post office answers, the reply comes back in the same envelope shape.
-
-**The four dispatch strategies:**
-
-| Strategy | Behaviour | Courier version |
+| Implementation | Mechanism | Multi-worker safe? |
 | --- | --- | --- |
-| **Single** | Always primary. No backup. | "We only deal with the Royal Mail. If they're down, you wait." |
-| **Fallback** | Try primary; if it fails, try fallback once. | "Try Royal Mail first. If they don't pick up, try DHL once. After that we give up." |
-| **Cost-optimised** | Same fallback behaviour. The "cost optimisation" is mostly aspirational — no logic picks providers by price today. | Same as fallback, badged as cost-aware. |
-| **Round-robin** | Cycle through AWS → Azure → Local. **No fallback** — if today's provider fails, the request fails. | "We rotate weekly between three couriers. If today's pick is down, sorry." |
+| `RedisRateLimiter` | `INCR key` then `EXPIRE key 60` on first request; atomic; counter lives in Redis | Yes |
+| `InMemoryRateLimiter` | `dict[api_key → (count, window_start)]`; resets when `now − window_start ≥ 60s` | No — each worker has its own dict |
+| `NoRateLimiter` | Always returns allowed — no counter at all | N/A |
 
-**Concrete example of fallback.** Primary = Azure, fallback = AWS. Azure is having an outage:
+**Worked example — rate limit timeline (limit = 5/minute):**
 
-```
-12:00:01  → Try Azure              → fails (503)
-12:00:01  → Try AWS                → succeeds
-12:00:02  ← Reply returned to client (200 OK)
-```
+| Time (s) | Event | Counter value | Result |
+| --- | --- | --- | --- |
+| 0 | Request 1 | 1 | 200 |
+| 15 | Request 2 | 2 | 200 |
+| 59 | Request 5 | 5 | 200 |
+| 59 | Request 6 | 6 | 429 — window still active |
+| 61 | Window resets | 0 → 1 | 200 — fresh window |
 
-The client sees a normal 200. **They have no idea a failover happened**, because the router internally marks `fallback=true` but the handler never puts that flag in the response. Only the gateway logs show what happened. Known observability gap.
+**Burst quirk.** Because the window is fixed, a caller can fire 5 requests in the last second of window 1 and 5 more in the first second of window 2 — 10 requests in 2 seconds — without ever being rejected. This is the classic fixed-window double-burst: the limiter only looks at the current window's count, not the rate across the boundary.
 
-**Per-request override.** Any caller can ignore the strategy by including `preferred_provider: "azure"` (or `aws`, or `local`) in the body. That choice wins over the strategy.
+**Quota-burn bug.** The counter increments before knowing whether the LLM will succeed. If the provider returns a 5xx, the increment is not rolled back. A flaky provider silently burns through customers' quotas.
 
-**Cost estimate.** For Bedrock and Azure the dollar estimate is real (fractions of a cent based on LiteLLM's price tables). For Ollama (local) it's **always $0.00** because there's no pricing data. So your dashboards will under-count "real" cost if you route a lot of traffic to local.
+If the limiter says no: the remaining steps are skipped and a `429 rate_limit_exceeded` is returned.
 
-**When everything fails** (single primary fails, or both primary and fallback fail), the handler returns 502. The original exception is logged but never shown to the client. **Reminder:** the rate-limit tally was already incremented in Step 1 and is *not* refunded.
+> **Courier version.** The dispatcher has a notebook with one page per customer. Every time a customer hands in a letter, she makes a tally mark — even before checking if the post office is open. When the page is full, the customer is told to come back next minute. The fixed-window trap: a clever customer can hand in five letters just before midnight and five more just after — ten letters in two minutes with only one page-full check.
 
-### Step 4 — Cache write (filing the answer for next time)
+---
 
-If the LLM call succeeded, the handler writes the answer onto the shelf using the same fingerprint as in Step 2. The stored value is small: the assistant's reply text, the model name, and the token counts. A TTL is applied (a few minutes by default) so the shelf doesn't fill up forever. Same dead semantic-path as on the read side. The in-memory cache implementation never deletes expired entries, so in a long-lived production process that would be a slow memory leak.
+#### Step 2 — Cache check
 
-### Step 5 — The cost log (the courier's ledger)
+The cache is checked before any LLM call. The fingerprint used to identify the same request is computed as `SHA-256(json.dumps(messages, sort_keys=True))[:32]`. The `sort_keys=True` argument makes the fingerprint deterministic even if the caller changes the key ordering of message objects. The result is the first 32 hex characters of the SHA-256 digest.
 
-Every successful request — whether it was a cache hit or a real LLM call — finishes by writing a row to a ledger called `usage_logs`. The ledger has a personality picker too: PostgreSQL in production (schema created lazily), in-memory in dev, no-op for tests.
+**Worked example — fingerprint sensitivity:**
 
-Each row captures: the boarding pass (request ID), the API key, the model, the provider, prompt and completion token counts, the dollar estimate, the gateway latency, whether it was a cache hit, and a UTC timestamp. The `/v1/usage` endpoint slices and dices this table to produce dashboards. **It's the single source of truth for "how much did this gateway spend yesterday?"**
+| Request | Messages (abbreviated) | Fingerprint | Result |
+| --- | --- | --- | --- |
+| A | `[{"role":"user","content":"What is 2+2?"}]` | `9f8d3a…` | MISS (first) |
+| B | identical to A | `9f8d3a…` | HIT |
+| C | `[{"role":"user","content":"what is 2+2?"}]` | `b41e09…` | MISS — lowercase `w` differs |
+| D | `[{"role":"user","content":"What is 2+2 ?"}]` | `c772aa…` | MISS — trailing space differs |
 
-**The quiet trap:** there's no `try/except` around the cost-log write in the handler. If PostgreSQL is unavailable for thirty seconds, every request during that window will pass the rate limiter (tally incremented), miss the cache, call the LLM successfully (you've been billed by AWS/Azure), try to write the cost row → fail, and the database error bubbles up to the client as a **500 Internal Server Error**. The user has effectively been charged but doesn't see the answer.
+Two cache implementations exist:
 
-### The whole condition matrix in one table
+- `RedisSemanticCache`: stores entries under `gw:cache:exact:{hash}` and `gw:cache:semantic:{hash}`.
+- `InMemoryCache`: plain dict with TTL timestamps — no active eviction policy; expired entries are deleted only when accessed, so a long-lived process accumulates stale entries (memory leak).
+
+**Dead semantic path.** The handler calls `cache.get(messages, embedding=None)`. The cache class has a fully implemented semantic-match branch guarded by `if embedding:` — but because `embedding` is always `None`, that branch never executes. Only exact-match runs. The semantic cache is dead wiring.
+
+**`bypass_cache: true`.** When set, the cache read is skipped (the caller always gets a fresh LLM response), but the cache write in Step 4 still runs — so the shelf is refreshed for other callers.
+
+**On a cache hit:** the handler returns immediately and writes a zero-cost row to the cost tracker with `cached=True`. The LLM is never called.
+
+> **Courier version.** The courier checks the shelf for a photocopy of this exact letter. The matching is pixel-perfect — a lowercase letter or an extra space creates a completely different photocopy. There is also a section of the shelf for "letters that mean roughly the same thing" (semantic cache), but the dispatcher never sends the courier to that section today — the wiring is there, the courier just never goes.
+
+---
+
+#### Step 3 — LLM routing
+
+If no cache hit, the request goes to the router. The router picks a provider using one of four strategies:
+
+| Strategy | Behaviour | Fallback on failure |
+| --- | --- | --- |
+| `SINGLE` | Always uses `settings.cloud_provider` | None — request fails |
+| `ROUND_ROBIN` | `providers[call_count % len(providers)]`; increments counter | None — if chosen provider fails, request fails |
+| `FALLBACK` | Try primary; on exception, try `settings.fallback_provider` once | One attempt at fallback |
+| `COST_OPTIMISED` | Identical to `FALLBACK` in code — no actual cost-comparison logic exists | One attempt at fallback |
+
+**Worked example — fallback routing:**
+
+| Time | Event | Result |
+| --- | --- | --- |
+| 12:00:01 | Try primary (Azure) | 503 from Azure |
+| 12:00:01 | Try fallback (AWS) | 200 |
+| 12:00:02 | Reply sent to client | 200 OK — client never sees that fallback was used |
+
+**Per-request override.** A caller can include `preferred_provider: "azure"` in the request body. The value resolves to a `CloudProvider` enum. An unrecognised value logs a warning and falls back to the strategy default.
+
+**Fallback flag swallowed.** When fallback is used, the router returns `{"fallback": True}` in its result dict, but the completions handler never reads that key. The client always sees a plain 200 — the failover is invisible without reading server logs.
+
+LiteLLM acts as a universal translator across all three providers. Provider model IDs are prefixed per-provider:
+
+| Provider | Chat model ID format | Embedding model ID format |
+| --- | --- | --- |
+| AWS Bedrock | `bedrock/{model_id}` | `bedrock/{embed_model_id}` |
+| Azure OpenAI | `azure/{deployment}` | `azure/{embed_deployment}` |
+| Local Ollama | `ollama/{model}` | `ollama/{embed_model}` |
+
+Cost estimate uses `litellm.completion_cost()`, which has pricing tables for Bedrock and Azure. For Ollama the estimate is always `$0.00` — no pricing data exists.
+
+> **Courier version.** If the preferred post office is closed, the fallback strategy lets the dispatcher quietly re-route to the backup office — the customer gets their reply with no indication it was rerouted. The round-robin strategy rotates mechanically: if today's office is shut, tough luck. The "cost-optimised" badge sounds smart but it just does the same as fallback today.
+
+---
+
+#### Step 4 — Cache write
+
+If the LLM call succeeded, the response is stored under the same fingerprint computed in Step 2. A TTL is applied so entries expire automatically.
+
+Two implementation notes: `InMemoryCache` has no active eviction — the memory footprint grows until the process restarts or an expired entry is read and removed on-access. In a long-lived production process, this is a slow memory leak. The dead semantic path affects the write too: the semantic index is never written because `embedding=None` is always passed.
+
+> **Courier version.** The courier files a photocopy of both the letter and the reply on the shelf with an "expires in N minutes" stamp. If the shelf uses pocket-notebooks (in-memory), old copies are never actively thrown out — they pile up until they are looked at and found stale.
+
+---
+
+#### Step 5 — Cost log
+
+Every request — cache hit or live LLM call — ends with a write to the cost ledger. The `PostgresCostTracker` lazily creates the `usage_logs` table on first use via SQLAlchemy, then appends one row per request. The row captures: request ID, API key, model, provider, `prompt_tokens`, `completion_tokens`, `estimated_cost_usd`, `latency_ms`, `cached` flag, and UTC timestamp.
+
+**Period boundaries** (relevant when reading usage summaries):
+
+| Period | Boundary |
+| --- | --- |
+| `today` | UTC midnight of the current day — not the caller's local midnight |
+| `week` | Rolling last 7 days from now |
+| `month` | Rolling last 30 days from now |
+
+**Quiet-trap bug.** There is no `try/except` around `cost_tracker.log_request()` in the handler. If Postgres is temporarily unreachable: the rate limit is incremented, the cache misses, the LLM succeeds (the cloud provider has been billed), the cache write succeeds — then the cost log raises an uncaught exception and the client receives `500 Internal Server Error`. The user sees a 500; the answer was computed; the cloud provider charged the account.
+
+> **Courier version.** After every delivery, the courier writes the job in the leather ledger — cost, time, destination. The trap: the clerk holding the pen has no safety net. If the ink jar is empty (Postgres down), the whole job is declared failed and the courier hands the customer a "sorry, error" note — even though the letter was already delivered and the post office already charged the depot.
+
+---
+
+### Condition matrix
 
 | Scenario | Rate counter | Cache read | LLM call | Cache write | Cost row | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -181,31 +219,31 @@ Each row captures: the boarding pass (request ID), the API key, the model, the p
 | Cache miss, LLM ok | +1 | MISS | yes | yes | yes (real $) | 200 |
 | Cache miss, primary fails, fallback ok | +1 | MISS | yes (twice) | yes | yes (real $) | 200 (fallback flag swallowed) |
 | Cache miss, all providers fail | +1 (no refund) | MISS | yes (failed) | no | no | 502 |
-| Cache miss, LLM ok, cost-log DB down | +1 | MISS | yes (paid) | yes | **failed** | 500 |
+| LLM ok, cost-log DB down | +1 | MISS | yes (paid) | yes | **failed** | 500 |
 | `bypass_cache: true`, LLM ok | +1 | skipped | yes | yes (refreshes shelf) | yes | 200 |
 
-### The honest health check (what a code review would surface)
+---
 
-These are the rough edges worth knowing about — none are show-stoppers, but they're the kind of things you'd want to fix before a real production rollout:
+### 🩺 Honest health check
 
-1. **Semantic cache is advertised but not wired.** Today it only does exact-string matching. The embedding path is dead code.
-2. **Failed LLM calls still consume rate quota.** A misbehaving provider can quietly DoS your users.
-3. **No retry or circuit-breaker around providers.** Fallback is a single shot, not a retry loop with exponential backoff.
-4. **In-memory rate limiter and cache don't share state across workers.** Fine in dev, dangerous at multi-worker scale.
-5. **Cost-log failures cause user-visible 500s** even though the LLM call already succeeded and the answer is in memory.
-6. **The `fallback=true` flag never reaches the client.** Observability gap — you can only see fallbacks happened by reading server logs.
-7. **Cache stats reset on restart.** No persistent counter for "lifetime cache hit rate".
-8. **Boundary burst on rate limiter.** A client can fire 60 requests in the last second of one window and 60 more in the first second of the next, bypassing the spirit of the limit. Acceptable trade-off; the provider's own rate limits are the backstop.
+1. **Semantic cache is never activated.** The handler passes `embedding=None` to every cache call, so the semantic branch in the cache class never runs. Only exact-match operates. Fix: compute the embedding before calling the cache and pass it in.
+2. **Fixed-window counter is mis-labelled "sliding window" in the source.** The algorithm is a standard fixed-window; true sliding-window would require a sorted set in Redis. Fix: correct the comment, or replace INCR+EXPIRE with a sorted-set implementation.
+3. **Failed LLM calls still consume rate quota.** The increment happens before the LLM call; there is no rollback on failure. Fix: add a rollback path or decrement on known LLM error.
+4. **`COST_OPTIMISED` strategy is identical to `FALLBACK`.** No cost-comparison logic exists. Fix: implement cost-based selection or rename the strategy to avoid misleading operators.
+5. **Fallback flag is swallowed.** The router returns `fallback: True` in its result but the handler never reads it. Clients and dashboards cannot observe failovers. Fix: surface the flag in the response or a structured log field.
+6. **`InMemoryCache` leaks memory.** Expired entries accumulate and are only removed when accessed. Fix: add a background eviction loop or switch to a TTL-aware data structure.
+7. **No `try/except` around `cost_tracker.log_request()`.** A Postgres outage causes HTTP 500 even after a successful LLM call. Fix: wrap in try/except, log the error, and return the response regardless.
+8. **`today` period uses UTC midnight, not the caller's local midnight.** Engineers in non-UTC timezones see a truncated "today" window. Fix: accept a `timezone` parameter, or document the UTC assumption prominently.
+
+---
 
 ### TL;DR
 
-- A request walks past three reception layers (CORS, logger, optional bouncer) and arrives at a five-step pipeline.
-- The pipeline is **rate limit → cache → LLM → cache write → cost log**. Any step can stop the train.
-- The cache is **strict** (exact-text match only — the "semantic" promise is unimplemented).
-- The router has **four strategies** to pick a provider, plus a per-request override.
-- The cost log is the **single source of truth** for spending, but it has no error handling so its database going down breaks user requests.
-- The biggest fragilities to know: failed-call quota burn, swallowed fallback flag, and cost-log 500s.
-
+- **Factory Method + Strategy Pattern** wire four components (`router`, `cache`, `rate_limiter`, `cost_tracker`) at startup; implementations swap based on what is reachable (Redis, Postgres) without touching handler code.
+- **Fixed-Window Counter** (not sliding window) enforces per-key rate limits; burst is possible at window boundaries; failed calls are not refunded.
+- **Exact-match cache only** — the SHA-256 fingerprint with `sort_keys=True` is deterministic but case- and whitespace-sensitive; the semantic path is fully implemented but never activated by the handler.
+- **Four routing strategies** (Single, Round-Robin, Fallback, Cost-Optimised) — Cost-Optimised is a no-op alias for Fallback; fallback transitions are invisible to clients.
+- The biggest known fragilities: cost-log 500s on Postgres outage, swallowed fallback flag, and in-memory cache memory leak.
 ---
 
 ## Endpoint Summary
