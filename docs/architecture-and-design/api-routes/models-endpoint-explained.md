@@ -14,6 +14,7 @@
 
 ## Table of Contents
 
+- [Plain-English Walkthrough (Start Here)](#plain-english-walkthrough-start-here)
 - [Endpoint Summary](#endpoint-summary)
 - [Request Schema](#request-schema)
 - [Response Schema](#response-schema)
@@ -21,6 +22,56 @@
 - [Curl Example](#curl-example)
 - [Error Cases](#error-cases)
 - [Courier Explainer](#courier-explainer)
+
+---
+
+## Plain-English Walkthrough (Start Here)
+
+> **Read this first if you're new to the gateway.** Same courier analogy as the [Completions Walkthrough](./completions-endpoint-explained.md#plain-english-walkthrough-start-here). This section just explains what's specific about the models endpoint.
+
+### What is this endpoint for?
+
+When a client wants to know "what models can I use through this gateway?", it asks `GET /v1/models`. The reply is a list of model identifiers grouped by provider — exactly the same shape OpenAI's API returns, so any OpenAI-compatible client (LangChain, the Python `openai` SDK, llama-index, etc.) can use this gateway as a drop-in replacement and discover models the same way.
+
+> **Courier version.** This is the **roster pinned to the dispatcher's wall**. A courier walks up and asks "who's on shift today and what kind of deliveries can they handle?". The dispatcher reads back the wall.
+
+### How it works
+
+This is the simplest endpoint in the gateway. There's no pipeline, no rate limit, no cost log, no LLM call — just a synchronous in-memory read. The handler asks the router for its list of models and returns the result. Round trip is typically under 5 milliseconds.
+
+The model list is **not fetched live from the providers**. It's hardcoded inside the router based on which providers are configured in the gateway's environment. So if AWS Bedrock has a temporary outage, this endpoint still returns the AWS model entry — the response reflects "what we *can* talk to", not "what's actually responding right now". For real liveness, use `/health`.
+
+### What you get back
+
+A response like this (shortened):
+
+```jsonc
+{
+  "object": "list",
+  "data": [
+    { "id": "bedrock/anthropic.claude-3-sonnet", "owned_by": "anthropic", "provider": "aws",   "capabilities": ["chat", "completions"] },
+    { "id": "bedrock/amazon.titan-embed-text-v2:0", "owned_by": "amazon", "provider": "aws",   "capabilities": ["embeddings"] },
+    { "id": "azure/gpt-4",                          "owned_by": "openai", "provider": "azure", "capabilities": ["chat", "completions"] },
+    { "id": "ollama/llama3",                        "owned_by": "meta",   "provider": "local", "capabilities": ["chat", "completions"] }
+  ]
+}
+```
+
+The `capabilities` field is **hardcoded by provider**: chat models get `["chat", "completions"]`, embedding models get `["embeddings"]`. There's no probing, no introspection — the list is what the router was wired to know about at startup.
+
+### Quirks worth knowing
+
+1. **Always returns 200, even if every provider is down.** The endpoint never calls the providers. So a green response here doesn't mean models actually work — it means they're configured.
+2. **No filtering.** You can't ask "show me only chat models" or "only AWS models" — the client has to filter the array itself.
+3. **No auth in the typical setup.** `/v1/models` is *not* in the `PUBLIC_PATHS` set, so when API keys are turned on it does require a Bearer token. Worth knowing if you wonder why your client gets 401 in dev-with-auth-on.
+4. **Adding a new model means a code change.** The model map lives inside the router, not in config. So onboarding a new Bedrock model is a code edit + redeploy, not a config update.
+
+### TL;DR
+
+- "Roster on the wall" — read-only list of configured models, grouped by provider.
+- No live probing, no rate limit, no cost. Sub-5ms response time.
+- Returns 200 even if providers are unreachable (use `/health` for liveness).
+- Hardcoded capability tags; no filter parameters; new models require a code change.
 
 ---
 

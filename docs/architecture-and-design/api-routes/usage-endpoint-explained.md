@@ -15,6 +15,7 @@
 
 ## Table of Contents
 
+- [Plain-English Walkthrough (Start Here)](#plain-english-walkthrough-start-here)
 - [Endpoint Summary](#endpoint-summary)
 - [Request Schema](#request-schema)
 - [Response Schema](#response-schema)
@@ -22,6 +23,100 @@
 - [Curl Example](#curl-example)
 - [Error Cases](#error-cases)
 - [Courier Explainer](#courier-explainer)
+
+---
+
+## Plain-English Walkthrough (Start Here)
+
+> **Read this first if you're new to the gateway.** Same courier analogy as the [Completions Walkthrough](./completions-endpoint-explained.md#plain-english-walkthrough-start-here). This explains what's specific about the cost-and-usage endpoint.
+
+### What is this endpoint for?
+
+`GET /v1/usage` is the **read side of the cost ledger**. While every chat and embedding request *writes* a row to the ledger (Step 5 of the completions pipeline), this endpoint *reads* the ledger and returns a summary: how many requests today, how many tokens, how many dollars, what fraction was cached, broken down by model and provider.
+
+> **Courier version.** This is the **expense-ledger window** at the depot. You walk up, ask "what did this account spend today?", and the clerk flips open the leather book, runs his finger down the right column, and reads back the totals.
+
+### How it works
+
+The handler is dead simple: it pulls the API key from the `Authorization` header (or falls back to the master key in dev), then asks the cost tracker for a summary of that key's activity over the requested period. There's **no pipeline, no rate limit, no LLM call** — just a database read.
+
+In production the cost tracker is PostgreSQL, so a usage call runs three SQL queries against the `usage_logs` table:
+
+1. **Aggregate row.** `COUNT(*)`, `SUM(total_tokens)`, `SUM(estimated_cost_usd)`, `AVG(latency_ms)`, and the cache-hit fraction (`SUM(CASE WHEN cached THEN 1 ELSE 0 END) / COUNT(*)`).
+2. **Breakdown by model.** A `GROUP BY model` to count requests per model, sorted descending.
+3. **Breakdown by provider.** A `GROUP BY provider` to sum dollars per provider.
+
+All three are filtered by the time window and by the caller's API key (truncated to the first 32 characters — same truncation the writer uses).
+
+### The `period` parameter — and what it really means
+
+You can pass `?period=today` (default), `?period=week`, or `?period=month`. Here's the literal definition the code uses:
+
+| `period` value | Time window |
+| --- | --- |
+| `today` | From midnight **UTC** of the current day to now |
+| `week` | The last 7 days from now |
+| `month` | The last 30 days from now |
+| anything else | The last 1 day from now (a hidden default) |
+
+A worked example. It's 02:00 in London (so 02:00 UTC, give or take). You hit `?period=today`. The window is from 00:00 UTC today to 02:00 UTC today — only the last two hours. If you're in IST (UTC+5:30), it's 07:30 in the morning at home but the window is still the last two hours of UTC. **`today` doesn't mean "today in your timezone"; it means "today in UTC".** This bites people from non-UTC zones who expect to see their full local-day activity.
+
+`week` and `month` are *rolling* windows — they don't reset at the start of a calendar week or month. Asking on Tuesday afternoon for `week` gives you the previous Tuesday afternoon to now.
+
+### The "you only see your own bill" rule
+
+The endpoint **filters by your API key**. There's no admin view, no global "show me everyone's spend" mode. If you call this with key A you see A's totals; if you call with key B you see B's totals. That's a privacy-by-default choice and it's the right one for a multi-tenant gateway, but it does mean you cannot use this endpoint as the operator's overall cost dashboard.
+
+For operator-wide views you'd query the `usage_logs` table directly in PostgreSQL — or build a separate admin endpoint. Today neither exists in the code.
+
+### The dev-mode footgun
+
+If API keys are turned off, the handler treats every anonymous caller as the master key. So `curl http://localhost:8100/v1/usage` in dev returns the **master key's totals** — which, because every anonymous request also wrote rows under the master key, includes basically everyone's traffic. It looks like an admin view but it isn't — it's just everybody using the same bucket.
+
+### What you get back
+
+```jsonc
+{
+  "summary": {
+    "period": "today",
+    "total_requests": 142,
+    "total_tokens": 38_201,
+    "total_cost_usd": 0.0421,
+    "avg_latency_ms": 327.45,
+    "cache_hit_rate": 0.18,
+    "requests_by_model": {
+      "azure/gpt-4": 87,
+      "bedrock/anthropic.claude-3-sonnet": 41,
+      "ollama/llama3": 14
+    },
+    "cost_by_provider": {
+      "azure": 0.0398,
+      "aws":   0.0023,
+      "local": 0.0000
+    }
+  },
+  "api_key": "sk-abcd12..."
+}
+```
+
+The `api_key` field shows the first 8 characters followed by `...` — it's a sanity check ("yes, you're looking at the right key"), not a security exposure.
+
+### Quirks worth knowing
+
+1. **`today` means UTC midnight, not your local midnight.** Account for timezone offset when reading the number.
+2. **Three SQL queries per call** — `COUNT/SUM` aggregate plus two `GROUP BY` breakdowns. Cheap on small tables, but worth indexing `(api_key, created_at)` if `usage_logs` grows large.
+3. **No global/admin view** — every call is filtered to the calling key. Run SQL directly on `usage_logs` for operator-wide stats.
+4. **API keys are truncated to 32 chars** before storage and lookup. If you happen to use two keys that share the first 32 chars, their bills will be merged.
+5. **The cache-hit rate denominator is `COUNT(*)`**, not just LLM calls. So a window full of cache hits drives the rate towards 100% as you'd expect; a window with no traffic at all returns 0 rather than dividing by zero (the SQL uses `NULLIF`).
+6. **`/health` calls this endpoint internally** (it does a `get_usage_summary(period="today")` to check the database is reachable). So a slow PostgreSQL slows down `/health` too.
+
+### TL;DR
+
+- Read-only window onto the cost ledger; **per-API-key**, never global.
+- Time periods are UTC-based (`today` = since UTC midnight) and `week`/`month` are rolling 7/30 days.
+- Three SQL queries per call: total, by model, by provider.
+- Dev-mode anonymous calls share the master key, which can look like an admin view but isn't.
+- For operator-wide totals, query the `usage_logs` table directly — no admin endpoint exists.
 
 ---
 

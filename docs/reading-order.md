@@ -4,16 +4,31 @@
 
 ---
 
+## 🚀 Want the whole architecture in one read?
+
+If you only have time for **one document** to understand how the gateway actually works end-to-end — every condition, every branch, every quirk, in plain English with worked examples and the courier analogy — read this:
+
+➡️ **[Completions Endpoint → Plain-English Walkthrough](architecture-and-design/api-routes/completions-endpoint-explained.md#plain-english-walkthrough-start-here)**
+
+It covers the front-desk middleware, the five-step pipeline (rate limit → cache → LLM → cache write → cost log), all four routing strategies, every failure mode, and the honest list of rough edges a code review would surface.
+
+Each of the other endpoint docs in [Level 4](#level-4--understand-the-api) opens with its own **Plain-English Walkthrough** for that route's specific behaviour — same style, same analogy. So once you've read the completions walkthrough, the others are quick add-ons that just cover what's different.
+
+---
+
 ## Table of Contents
 
-- [Level 1 — Start Here (The Big Picture)](#level-1--start-here-the-big-picture)
-- [Level 2 — Setup & Run It](#level-2--setup--run-it)
-- [Level 3 — Core Components Deep Dives](#level-3--core-components-deep-dives)
-- [Level 4 — Understand the API](#level-4--understand-the-api)
-- [Level 5 — Cloud Infrastructure](#level-5--cloud-infrastructure)
-- [Level 6 — Evaluation & Cost](#level-6--evaluation--cost)
-- [Level 7 — Hands-On Labs](#level-7--hands-on-labs)
-- [Quick Reference](#quick-reference)
+- [📚 Documentation Reading Order](#-documentation-reading-order)
+  - [🚀 Want the whole architecture in one read?](#-want-the-whole-architecture-in-one-read)
+  - [Table of Contents](#table-of-contents)
+  - [Level 1 — Start Here (The Big Picture)](#level-1--start-here-the-big-picture)
+  - [Level 2 — Setup \& Run It](#level-2--setup--run-it)
+  - [Level 3 — Core Components Deep Dives](#level-3--core-components-deep-dives)
+  - [Level 4 — Understand the API](#level-4--understand-the-api)
+  - [Level 5 — Cloud Infrastructure](#level-5--cloud-infrastructure)
+  - [Level 6 — Evaluation \& Cost](#level-6--evaluation--cost)
+  - [Level 7 — Hands-On Labs](#level-7--hands-on-labs)
+  - [Quick Reference](#quick-reference)
 
 ---
 
@@ -59,10 +74,12 @@ The four pillars of the gateway, in the order a request meets them.
 
 The gateway exposes an OpenAI-compatible HTTP surface. Start with the contract, then dive into each endpoint.
 
+> 💡 **Each endpoint doc starts with a "Plain-English Walkthrough" section** that explains the full request flow — middleware, pipeline steps, all the conditions and branches — using the courier analogy and worked examples. The schema and error tables follow as reference. So even if you came here just for the API, the architecture story is one click away.
+
 | # | Document | What you'll learn | 🚚 Courier |
 |---|----------|-------------------|-----------|
 | 12 | [API Contract](architecture-and-design/api-contract.md) | All routes at a glance, request/response shapes, status codes | The full sign-board on the gateway's front door — every window, what slip goes in, what package comes out. |
-| 13 | [Completions Endpoint](architecture-and-design/api-routes/completions-endpoint-explained.md) | `POST /v1/chat/completions` — the main RAG-style call | The main delivery window — hand in a question slip, get back a written answer carried by whichever courier was on duty. |
+| 13 | [Completions Endpoint](architecture-and-design/api-routes/completions-endpoint-explained.md) ⭐ **includes the full architecture walkthrough** | `POST /v1/chat/completions` — the main RAG-style call. The walkthrough at the top of this doc is the single best end-to-end explanation of how the whole gateway works. | The main delivery window — hand in a question slip, get back a written answer carried by whichever courier was on duty. |
 | 14 | [Embeddings Endpoint](architecture-and-design/api-routes/embeddings-endpoint-explained.md) | `POST /v1/embeddings` — turn text into vectors | The GPS-coordinate writer — text in, fixed-length coordinates out, ready to be shelved in the warehouse. |
 | 15 | [Models Endpoint](architecture-and-design/api-routes/models-endpoint-explained.md) | `GET /v1/models` — list available providers | The roster pinned to the dispatcher's wall — every courier currently on shift and what they're certified to carry. |
 | 16 | [Usage Endpoint](architecture-and-design/api-routes/usage-endpoint-explained.md) | `GET /v1/usage` — read the cost ledger | The expense-ledger window — open the leather book and read this week's totals by provider and API key. |
