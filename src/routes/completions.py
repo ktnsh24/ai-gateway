@@ -170,6 +170,11 @@ async def chat_completions(
     await cache.put(messages_dicts, cache_entry)
 
     # --- Step 5: Log Usage ---
+    # BUG: "The quiet trap" — no try/except here. If PostgreSQL is down, this call raises
+    # and the exception bubbles up to the client as a 500 Internal Server Error — even though
+    # the LLM already responded successfully and the provider has already billed the account.
+    # The user sees an error and gets no answer, but the cost was incurred.
+    # Fix: wrap in try/except, log the failure, degrade gracefully (return the LLM answer anyway).
     elapsed_ms = (time.perf_counter() - start) * 1000
     await cost_tracker.log_request(
         request_id=request_id,
