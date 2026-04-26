@@ -7,14 +7,14 @@ Every setting has a default for local development with Docker Compose.
 See docs/reference/pydantic-models.md for detailed explanation of every field.
 """
 
-from enum import Enum
+from enum import StrEnum
 from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class CloudProvider(str, Enum):
+class CloudProvider(StrEnum):
     """Which cloud provider to use for LLM routing."""
 
     AWS = "aws"
@@ -22,7 +22,7 @@ class CloudProvider(str, Enum):
     LOCAL = "local"
 
 
-class AppEnvironment(str, Enum):
+class AppEnvironment(StrEnum):
     """Deployment environment. Affects log verbosity and feature flags."""
 
     DEV = "dev"
@@ -30,7 +30,7 @@ class AppEnvironment(str, Enum):
     PRD = "prd"
 
 
-class RoutingStrategy(str, Enum):
+class RoutingStrategy(StrEnum):
     """How to select the LLM provider for a request."""
 
     SINGLE = "single"          # Always use CLOUD_PROVIDER

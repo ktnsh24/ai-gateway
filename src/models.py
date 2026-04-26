@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -151,7 +151,7 @@ class ModelListResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Usage & Cost Dashboard
 # ---------------------------------------------------------------------------
-class UsagePeriod(str, Enum):
+class UsagePeriod(StrEnum):
     """Time period for usage queries."""
 
     TODAY = "today"
