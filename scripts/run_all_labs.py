@@ -36,7 +36,7 @@ import json
 import sys
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -476,7 +476,7 @@ def run_lab5_cost_tracking(client: httpx.Client) -> list[ExperimentResult]:
         for i in range(3):
             chat_completion(client, f"Tell me fact number {i + 1} about AI")
             time.sleep(0.5)
-        get_embeddings(client, f"Embedding text for cost tracking")
+        get_embeddings(client, "Embedding text for cost tracking")
 
         data = get_usage(client)
         r.total_requests = data.get("total_requests", 0)
@@ -610,7 +610,7 @@ def run_all(
     suite = LabSuite(
         environment=environment,
         base_url=base_url,
-        started_at=datetime.now(timezone.utc).isoformat(),
+        started_at=datetime.now(UTC).isoformat(),
     )
 
     client = httpx.Client(base_url=base_url, timeout=DEFAULT_TIMEOUT)
@@ -652,7 +652,7 @@ def run_all(
             print(f"  ❌ {lab_name} crashed: {e}")
 
     client.close()
-    suite.finished_at = datetime.now(timezone.utc).isoformat()
+    suite.finished_at = datetime.now(UTC).isoformat()
     return suite
 
 
@@ -730,7 +730,7 @@ def main() -> None:
 
     only = args.only.split(",") if args.only else None
 
-    print(f"🧪 AI Gateway Lab Runner")
+    print("🧪 AI Gateway Lab Runner")
     print(f"   Environment: {args.env}")
     print(f"   Base URL:    {args.base_url}")
     print(f"   Dry run:     {args.dry_run}")

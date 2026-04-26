@@ -9,9 +9,9 @@ Tests:
     - Cache hit returns cached response
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 

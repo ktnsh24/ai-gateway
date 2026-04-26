@@ -11,11 +11,13 @@ from src.models import UsagePeriod, UsageResponse, UsageSummary
 
 router = APIRouter(prefix="/v1", tags=["usage"])
 
+_PERIOD_QUERY = Query(default=UsagePeriod.TODAY, description="Time period")
+
 
 @router.get("/usage", response_model=UsageResponse)
 async def get_usage(
     request: Request,
-    period: UsagePeriod = Query(default=UsagePeriod.TODAY, description="Time period"),
+    period: UsagePeriod = _PERIOD_QUERY,
 ) -> UsageResponse:
     """Get usage summary for the specified period."""
     cost_tracker = request.app.state.cost_tracker

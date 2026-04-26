@@ -8,9 +8,9 @@ Tests:
     - NoRateLimiter always allows
 """
 
-import pytest
 import time
 
+import pytest
 from src.config import Settings
 from src.gateway.rate_limiter import InMemoryRateLimiter, NoRateLimiter
 

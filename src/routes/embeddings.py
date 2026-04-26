@@ -73,7 +73,7 @@ async def create_embeddings(
         raise HTTPException(
             status_code=502,
             detail={"error": "embedding_provider_error", "message": str(e)},
-        )
+        ) from e
 
     response_obj = result["response"]
     provider = result["provider"]

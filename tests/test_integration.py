@@ -12,8 +12,9 @@ Test inventory (22 tests):
     TestEmbeddingsErrorHandling   — Rate limit, provider failure (2 tests)
 """
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 # ---------------------------------------------------------------------------

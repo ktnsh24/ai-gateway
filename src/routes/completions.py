@@ -134,12 +134,12 @@ async def chat_completions(
                 "message": f"All LLM providers failed: {str(e)}",
                 "request_id": request_id,
             },
-        )
+        ) from e
 
     response_obj = result["response"]
     provider = result["provider"]
     model = result["model"]
-    llm_latency = result["latency_ms"]
+    result["latency_ms"]
 
     # Extract response content
     content = response_obj.choices[0].message.content

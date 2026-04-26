@@ -9,7 +9,6 @@ Tests:
 """
 
 import pytest
-
 from src.gateway.cost_tracker import InMemoryCostTracker, NoCostTracker
 
 

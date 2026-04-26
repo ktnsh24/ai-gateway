@@ -17,10 +17,8 @@ See docs/ai-engineering/cost-tracking-deep-dive.md for detailed explanation.
 
 from __future__ import annotations
 
-import time
-import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from loguru import logger
 
@@ -82,7 +80,6 @@ class PostgresCostTracker(BaseCostTracker):
     async def _create_tables(self) -> None:
         """Create the usage_logs table if it doesn't exist."""
         from sqlalchemy import text
-        from sqlalchemy.ext.asyncio import create_async_engine
 
         engine = self._engine
         async with engine.begin() as conn:
@@ -164,7 +161,7 @@ class PostgresCostTracker(BaseCostTracker):
         from sqlalchemy import text
 
         # Calculate time boundary
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if period == "today":
             since = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period == "week":
@@ -268,7 +265,7 @@ class InMemoryCostTracker(BaseCostTracker):
             "estimated_cost_usd": estimated_cost_usd,
             "latency_ms": latency_ms,
             "cached": cached,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
         })
 
     async def get_usage_summary(
@@ -280,7 +277,7 @@ class InMemoryCostTracker(BaseCostTracker):
         if api_key:
             records = [r for r in records if r["api_key"] == api_key[:32]]
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if period == "today":
             since = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period == "week":

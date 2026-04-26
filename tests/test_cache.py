@@ -9,10 +9,9 @@ Tests:
     - NoCache always returns None
 """
 
-import pytest
 import time
-from unittest.mock import patch
 
+import pytest
 from src.config import Settings
 from src.gateway.cache import InMemoryCache, NoCache
 

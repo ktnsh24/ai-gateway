@@ -17,7 +17,6 @@ from starlette.responses import JSONResponse, Response
 
 from src.config import get_settings
 
-
 # Paths that don't require authentication
 PUBLIC_PATHS = {"/health", "/docs", "/redoc", "/openapi.json"}
 

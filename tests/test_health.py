@@ -7,9 +7,9 @@ Tests:
     - Settings are loaded and injected into app state
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 
