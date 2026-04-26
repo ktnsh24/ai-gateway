@@ -76,6 +76,10 @@ async def chat_completions(
     messages_dicts = [{"role": m.role, "content": m.content} for m in body.messages]
 
     if not body.bypass_cache:
+        # BUG: Classic "built but not connected" — cache.get() accepts an embedding argument
+        # that enables semantic similarity matching (≥92% similar = cache hit), but no
+        # embedding is generated or passed here. Only the exact-fingerprint path runs.
+        # Fix: generate an embedding for messages_dicts first, then pass it as the second arg.
         cached_response = await cache.get(messages_dicts)
         if cached_response:
             elapsed_ms = (time.perf_counter() - start) * 1000
