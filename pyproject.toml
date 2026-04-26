@@ -55,11 +55,6 @@ optional = true
 [tool.poetry.group.local.dependencies]
 # Local dev uses Ollama — no extra Python deps needed
 
-[tool.poetry.scripts]
-start = "uvicorn src.main:app --reload --port 8100"
-test = "pytest tests/ -v"
-lint = "ruff check src/ tests/"
-
 [tool.ruff]
 target-version = "py312"
 line-length = 120
