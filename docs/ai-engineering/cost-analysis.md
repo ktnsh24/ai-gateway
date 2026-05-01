@@ -4,16 +4,18 @@
 
 **Related:** [Cost Tracking Deep Dive](cost-tracking-deep-dive.md) · [Architecture](../architecture-and-design/architecture.md)
 
+**Shared baseline:** [Cost Analysis Playbook (portfolio-level)](../../../../docs/shared/ai-engineering/cost-analysis-playbook.md)
+
 ## Table of Contents
 
 - [Monthly Cost Summary](#monthly-cost-summary)
- - [Development (personal account)](#development-personal-account)
- - [Production (small scale)](#production-small-scale-1000-queriesdy)
+  - [Development (personal account)](#development-personal-account)
+  - [Production (small scale)](#production-small-scale-1000-queriesday)
 - [Service-by-Service Breakdown](#service-by-service-breakdown)
- - [LLM Inference (Routed via LiteLLM)](#llm-inference-routed-via-litellm)
- - [Semantic Cache (Redis)](#semantic-cache-redis)
- - [Cost Tracking Database (PostgreSQL)](#cost-tracking-database-postgresql)
- - [Rate Limiting](#rate-limiting)
+  - [LLM Inference (Routed via LiteLLM)](#llm-inference-routed-via-litellm)
+  - [Semantic Cache (Redis)](#semantic-cache-redis)
+  - [Cost Tracking Database (PostgreSQL)](#cost-tracking-database-postgresql)
+  - [Rate Limiting](#rate-limiting)
 - [Cost Impact of Gateway Features](#cost-impact-of-gateway-features)
 - [What Alternatives Cost More](#what-alternatives-cost-more)
 - [Decision Summary](#decision-summary)
