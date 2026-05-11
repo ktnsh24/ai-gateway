@@ -22,11 +22,13 @@ Usage:
 What it does:
     1. Hits the chat/completions, embeddings, usage, health, and models endpoints
     2. Captures all scores, latencies, answers, cache behaviour, and metadata
-    3. Generates 2 markdown files (one per phase) with results filled in
-    4. Creates a summary JSON file with all raw results
+    3. Generates phase-specific markdown files (phase-1, phase-2)
+    4. Generates a run execution plan and full summary markdown
+    5. Creates a raw-results JSON file
 
 Note: This script does NOT modify the original hands-on lab docs in-place.
-      It generates new files in scripts/lab_results/<env>/ so you can review first.
+    It generates new files in scripts/lab_results/<env>/<timestamp>/ so you can
+    review first.
 """
 
 from __future__ import annotations
@@ -597,6 +599,23 @@ ALL_LABS: dict[str, Any] = {
     "8": ("Lab 8: Docker Compose Stack", run_lab8_docker_compose),
 }
 
+LAB_EXECUTION_PLAN = [
+    {
+        "step": 1,
+        "labs": "1-4",
+        "phase": "Phase 1 — Foundation",
+        "focus": "Core gateway behavior",
+        "why": "Validate baseline behavior first: request path, cache, rate limit, embeddings.",
+    },
+    {
+        "step": 2,
+        "labs": "5-8",
+        "phase": "Phase 2 — Production",
+        "focus": "Operational confidence",
+        "why": "Validate usage tracking, health, tracing, and full-stack integration before cloud runs.",
+    },
+]
+
 
 def run_all(
     base_url: str,
@@ -661,6 +680,55 @@ def run_all(
 # ---------------------------------------------------------------------------
 
 
+def _summarise_results(results: list[ExperimentResult]) -> tuple[int, int, int]:
+    """Return success/failed/other counters for a list of results."""
+    success = sum(1 for r in results if r.status == "success")
+    failed = sum(1 for r in results if r.status == "failed")
+    other = len(results) - success - failed
+    return success, failed, other
+
+
+def _results_table(results: list[ExperimentResult]) -> list[str]:
+    """Render a compact markdown table for a result set."""
+    lines = [
+        "| Experiment | Description | Status | Latency | Notes |",
+        "|-----------|-------------|--------|---------|-------|",
+    ]
+    for r in results:
+        icon = "✅" if r.status == "success" else "❌" if r.status == "failed" else "⚠️"
+        latency = f"{r.latency_ms}ms" if r.latency_ms else "—"
+        notes_str = "; ".join(r.notes[:2]) if r.notes else "—"
+        lines.append(f"| {r.experiment_id} | {r.description} | {icon} {r.status} | {latency} | {notes_str} |")
+    return lines
+
+
+def generate_phase_markdown(suite: LabSuite, phase: int) -> str:
+    """Generate markdown results for a single phase."""
+    phase_results = [r for r in suite.results if r.phase == phase]
+    success, failed, other = _summarise_results(phase_results)
+
+    phase_name = "Foundation" if phase == 1 else "Production"
+    lines = [
+        f"# AI Gateway — Phase {phase} Results ({phase_name})",
+        "",
+        f"> **Environment:** {suite.environment}",
+        f"> **Base URL:** {suite.base_url}",
+        f"> **Run started:** {suite.started_at}",
+        f"> **Run finished:** {suite.finished_at}",
+        "",
+        "---",
+        "",
+        f"## Phase {phase} Summary",
+        "",
+        f"**Total: {success} passed, {failed} failed, {other} other out of {len(phase_results)} experiments**",
+        "",
+    ]
+
+    lines.extend(_results_table(phase_results))
+    lines.append("")
+    return "\n".join(lines)
+
+
 def generate_results_markdown(suite: LabSuite) -> str:
     """Generate a markdown summary of all results."""
     lines = [
@@ -675,28 +743,65 @@ def generate_results_markdown(suite: LabSuite) -> str:
         "",
         "## Summary",
         "",
-        "| Experiment | Description | Status | Latency | Notes |",
-        "|-----------|-------------|--------|---------|-------|",
     ]
 
-    passed = 0
-    failed = 0
-    for r in suite.results:
-        icon = "✅" if r.status == "success" else "❌" if r.status == "failed" else "⚠️"
-        latency = f"{r.latency_ms}ms" if r.latency_ms else "—"
-        notes_str = "; ".join(r.notes[:2]) if r.notes else "—"
-        lines.append(f"| {r.experiment_id} | {r.description} | {icon} {r.status} | {latency} | {notes_str} |")
-        if r.status == "success":
-            passed += 1
-        else:
-            failed += 1
+    phase_1 = [r for r in suite.results if r.phase == 1]
+    phase_2 = [r for r in suite.results if r.phase == 2]
+    p1_success, p1_failed, p1_other = _summarise_results(phase_1)
+    p2_success, p2_failed, p2_other = _summarise_results(phase_2)
+    total_success, total_failed, total_other = _summarise_results(suite.results)
 
     lines.extend([
+        "| Phase | Passed | Failed | Other | Total |",
+        "|------|--------|--------|-------|-------|",
+        f"| Phase 1 — Foundation | {p1_success} | {p1_failed} | {p1_other} | {len(phase_1)} |",
+        f"| Phase 2 — Production | {p2_success} | {p2_failed} | {p2_other} | {len(phase_2)} |",
+        f"| **Overall** | **{total_success}** | **{total_failed}** | **{total_other}** | **{len(suite.results)}** |",
         "",
-        f"**Total: {passed} passed, {failed} failed out of {len(suite.results)} experiments**",
+        "---",
+        "",
+        "## Experiment Details",
         "",
     ])
 
+    lines.extend(_results_table(suite.results))
+
+    lines.extend([
+        "",
+        f"**Total: {total_success} passed, {total_failed} failed, {total_other} other out of {len(suite.results)} experiments**",
+        "",
+    ])
+
+    return "\n".join(lines)
+
+
+def generate_execution_plan_markdown(suite: LabSuite) -> str:
+    """Generate markdown execution plan for this run."""
+    lines = [
+        "# AI Gateway — Lab Execution Plan",
+        "",
+        f"> **Environment:** {suite.environment}",
+        f"> **Base URL:** {suite.base_url}",
+        f"> **Run started:** {suite.started_at}",
+        "",
+        "---",
+        "",
+        "## Why This Order",
+        "",
+        "Foundation labs validate core gateway mechanics first. Production labs validate operational readiness second.",
+        "",
+        "## Plan",
+        "",
+        "| Step | Labs | Phase | Focus | Why |",
+        "|------|------|-------|-------|-----|",
+    ]
+
+    for item in LAB_EXECUTION_PLAN:
+        lines.append(
+            f"| {item['step']} | {item['labs']} | {item['phase']} | {item['focus']} | {item['why']} |"
+        )
+
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -704,10 +809,24 @@ def save_results(suite: LabSuite, output_dir: Path) -> None:
     """Save results to markdown and JSON."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Execution plan
+    execution_plan = generate_execution_plan_markdown(suite)
+    (output_dir / "lab-execution-plan.md").write_text(execution_plan)
+    print(f"\n📄 Execution plan: {output_dir / 'lab-execution-plan.md'}")
+
+    # Phase markdown reports
+    phase_1_md = generate_phase_markdown(suite, phase=1)
+    (output_dir / "phase-1-results.md").write_text(phase_1_md)
+    print(f"📄 Phase 1 results: {output_dir / 'phase-1-results.md'}")
+
+    phase_2_md = generate_phase_markdown(suite, phase=2)
+    (output_dir / "phase-2-results.md").write_text(phase_2_md)
+    print(f"📄 Phase 2 results: {output_dir / 'phase-2-results.md'}")
+
     # Markdown summary
     md = generate_results_markdown(suite)
     (output_dir / "full-summary.md").write_text(md)
-    print(f"\n📄 Markdown summary: {output_dir / 'full-summary.md'}")
+    print(f"📄 Full summary: {output_dir / 'full-summary.md'}")
 
     # Raw JSON
     raw = json.dumps([asdict(r) for r in suite.results], indent=2, default=str)
@@ -738,7 +857,8 @@ def main() -> None:
         print(f"   Only labs:   {only}")
 
     if not args.dry_run:
-        output_dir = Path(__file__).parent / "lab_results" / args.env
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H")
+        output_dir = Path(__file__).parent / "lab_results" / args.env / timestamp
         output_dir.mkdir(parents=True, exist_ok=True)
     else:
         output_dir = None

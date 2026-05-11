@@ -23,43 +23,37 @@
 All labs run **locally for free**. Cloud costs if you deploy:
 
 | Stack | Per lab session (~50 queries) | Monthly (always on) | Best for | 🚚 Courier |
-|-------|-------------------------------|---------------------|----------|-----------|
+| --- | --- | --- | --- | --- |
 | **Local (Ollama + Redis + PostgreSQL)** | $0 | $0 | Learning, experimenting | 🚚 Running the whole service locally costs nothing, letting you practise every dispatch workflow without logging a single cent in the expense ledger. |
 | **AWS (cheapest)** | ~$0.03 | ~$35/mo (ElastiCache + RDS) | Proving cloud skills | 🚚 The AWS depot charges about three cents per lab session, proving you can run a real cloud depot with a leather-bound PostgreSQL expense ledger. |
 | **Azure (cheapest)** | ~$0.01 | ~$15/mo (Redis Cache Basic) | Good free tiers | 🚚 The Azure hub costs around one cent per session with generous free tiers that make it friendly for smaller courier fleets learning cloud dispatch. |
 
-<details>
-<summary>Detailed AWS breakdown</summary>
+### Detailed AWS breakdown
 
 | Component | AWS Service | Cost | 🚚 Courier |
-|-----------|-------------|------|-----------|
+| --- | --- | --- | --- |
 | LLM | Bedrock (Claude 3 Haiku) | ~$0.02/session | 🚚 The AWS depot's Haiku courier costs about two cents per lab session, making it the cheapest cloud barn for straightforward delivery errands. |
 | Semantic cache | ElastiCache Redis (t3.micro) | ~$13/mo | 🚚 ElastiCache is the fast pickup locker shelf in the AWS depot, storing pre-written replies at about thirteen dollars a month on a micro-sized rack. |
 | Cost tracking DB | RDS PostgreSQL (t3.micro) | ~$15/mo | 🚚 RDS is the cloud leather-bound expense ledger that logs every delivery's tokens and cost at around fifteen dollars a month. |
 | API server | ECS Fargate (0.5 vCPU) | ~$15/mo | 🚚 The Fargate gateway hosts the switchboard dispatch desk in the cloud for about fifteen dollars a month with no server to maintain yourself. |
 | Logs | CloudWatch | $0 (free tier) | 🚚 CloudWatch is the free observability dashboard that records every delivery log and lets you replay any courier's delivery journey without paying a monitoring bill. |
 
-</details>
-
-<details>
-<summary>Detailed Azure breakdown</summary>
+### Detailed Azure breakdown
 
 | Component | Azure Service | Cost | 🚚 Courier |
-|-----------|---------------|------|-----------|
+| --- | --- | --- | --- |
 | LLM | Azure OpenAI (GPT-4o mini) | ~$0.01/session | 🚚 The Azure hub's GPT-4o mini courier costs just one cent per session, offering a quick and affordable cloud barn for standard delivery tasks. |
 | Semantic cache | Azure Cache for Redis (Basic C0) | ~$15/mo | 🚚 Azure's fast pickup locker shelf keeps pre-written replies ready for about fifteen dollars a month on the Basic C0 rack at the Azure hub. |
 | Cost tracking DB | Azure Database for PostgreSQL (Burstable B1ms) | ~$13/mo | 🚚 Azure's leather-bound expense ledger runs on a burstable instance for thirteen dollars a month, logging every parcel unit delivered by hub couriers. |
 | API server | Container Apps (free tier) | $0 | 🚚 The Azure gateway runs the dispatch desk for free on Container Apps, hosting the switchboard without adding a cent to the monthly bill. |
 | Logs | Azure Monitor | $0 | 🚚 Azure Monitor acts as free observability dashboard, recording every delivery detail so you can trace any courier's route without incurring extra observability costs. |
 
-</details>
-
 ---
 
 ## 🚚 The Courier Analogy — Understanding Phase 1 Gateway Metrics
 
 | Metric | 🚚 Courier Analogy | What It Means for the Gateway | How It's Calculated |
-|--------|-------------------|-------------------------------|---------------------|
+| --- | --- | --- | --- |
 | **Provider Routing** | Chooses which model road to use | Selects the right LLM backend (OpenAI, Azure, local) based on config | Config lookup → provider factory → route request to correct endpoint |
 | **Semantic Cache** | Remembers recent deliveries for speed | Skips the LLM call if a similar question was already answered | Embed query → cosine similarity vs cache → hit if similarity > threshold |
 | **Rate Limiting** | Limits queue overload at the gate | Prevents exhausting shared LLM quotas under burst traffic | Token-bucket or fixed-window counter → reject/queue if limit exceeded |
@@ -73,11 +67,13 @@ All labs run **locally for free**. Cloud costs if you deploy:
 
 > 🏢 **Business Context:** A platform team needs a unified API endpoint for multiple LLM providers. Instead of each team integrating directly with AWS Bedrock, Azure OpenAI, and Ollama, they want a single endpoint that handles provider abstraction, so teams can switch providers without code changes.
 
-### Objective
+### Lab 1 Objective
 
-Start the gateway with minimal configuration and send your first OpenAI-compatible request.
+Start from an intentional failure, detect it quickly, apply one minimal fix, and confirm recovery through measurable signals.
 
-### Steps
+### Fail-First Setup (Intentional Break)
+
+Before starting the gateway, intentionally misconfigure the model so startup or request flow fails.
 
 ```bash
 # 1. Install dependencies
@@ -86,32 +82,70 @@ poetry install
 
 # 2. Configure
 cp .env.example .env
-# Defaults work: CLOUD_PROVIDER=local
 
-# 3. Ensure Ollama is running
-ollama pull llama3.2
-ollama pull nomic-embed-text
+# 3. INTENTIONAL BREAK (example)
+# Set a model name that does not exist locally
+# MODEL_NAME=llama3.2-does-not-exist
 
 # 4. Start the gateway
 poetry run start
 ```
 
-### Test
+If startup succeeds despite the bad model, keep the bad config and trigger failure via the first request in Swagger UI.
+
+### Failure Signals (What interviewers care about)
+
+Noisy signals:
+
+- Request fails with provider/model error
+- Elevated response latency due to retries/fallback attempts
+- Health check shows degraded dependency state
+
+Silent signals:
+
+- Gateway responds but answer quality degrades
+- Incorrect fallback provider is used without explicit visibility
+- Latency trend worsens before hard failures appear
+
+### Lab 1 Setup Steps
 
 ```bash
-# Send a chat completion request
-curl -X POST http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant. Be concise."},
-      {"role": "user", "content": "What is the capital of the Netherlands?"}
-    ],
-    "temperature": 0.3
-  }' | jq
+# Ensure Ollama base models are available
+ollama pull llama3.2
+ollama pull nomic-embed-text
 ```
 
-### Expected Result
+### Run in Swagger UI (Failure Run)
+
+Open Swagger UI → `POST /v1/chat/completions` → Try it out → Execute with:
+
+```json
+{
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant. Be concise."
+    },
+    {
+      "role": "user",
+      "content": "What is the capital of the Netherlands?"
+    }
+  ],
+  "temperature": 0.3
+}
+```
+
+Record the failing behavior (error body or degraded response quality/latency).
+
+### Minimal Fix Path
+
+Apply one small fix only:
+
+1. Restore valid model configuration in `.env`
+2. Restart gateway: `poetry run start`
+3. Re-run the exact same Swagger request
+
+### Lab 1 Expected Result
 
 ```json
 {
@@ -137,24 +171,44 @@ curl -X POST http://localhost:8100/v1/chat/completions \
 }
 ```
 
-### Verify
+### Before/After Recovery Metrics
 
-- [ ] Response is in OpenAI format (has `choices`, `usage`, `model`)
+| Metric | Before fix | After fix | Target |
+| --- | --- | --- | --- |
+| Request success rate | < 100% | 100% | 100% in local lab run |
+| Gateway latency (`gateway_latency_ms`) | unstable / elevated | stable | p95 within your local baseline |
+| Correctness (sample question) | inconsistent / failed | correct answer | Correct factual answer |
+| Health endpoint status | degraded/partial | healthy | Healthy dependencies |
+
+### Lab 1 Verification Checklist
+
+- [ ] Swagger UI at `http://localhost:8100/docs` loads
+- [ ] Failure was reproducible before the fix
+- [ ] Response is in OpenAI format (`choices`, `usage`, `model`)
 - [ ] `model` starts with `ollama/`
-- [ ] `cache_hit` is `false` (first request)
-- [ ] `gateway_latency_ms` is present
-- [ ] Swagger UI at http://localhost:8100/docs loads
+- [ ] `cache_hit` is `false` on first successful request
+- [ ] `gateway_latency_ms` is present and improved vs failure run
 
-### 🧠 Certification Question
+### Interview Debrief (2-minute answer practice)
+
+Use this exact structure when asked in interviews:
+
+1. **Blast radius:** Which user paths failed or degraded?
+2. **Detection:** Which signal caught it first (error, latency, health, quality)?
+3. **Mitigation:** What single change restored service?
+4. **Prevention:** What guardrail prevents recurrence (config validation, startup checks, health gates)?
+5. **Tradeoff:** What did you optimize for (speed to recover vs deeper refactor)?
+
+### 🧠 Lab 1 Certification Question
 
 **Q: What AWS service provides a similar API gateway pattern for routing requests to multiple backend services?**
 A: Amazon API Gateway — supports routing, throttling, and authentication for multiple backend integrations, similar to our LLM gateway pattern.
 
-### What you learned
+### Lab 1 What You Learned
 
-The gateway exposes an OpenAI-compatible API regardless of the underlying provider. Responses include `cache_hit` and `gateway_latency_ms` — gateway-specific metadata that doesn't exist in raw LLM calls.
+In interview terms, you demonstrated system judgment: you triggered a realistic failure, separated noisy vs silent signals, applied a minimal fix, and proved recovery with measurable before/after behavior.
 
-**✅ Skill unlocked:** You can send requests through the gateway and interpret gateway-specific response fields.
+**✅ Skill unlocked:** You can explain not only how the gateway works, but how it fails, how you detect degradation early, and how you recover safely.
 
 ---
 
@@ -162,82 +216,105 @@ The gateway exposes an OpenAI-compatible API regardless of the underlying provid
 
 > 🏢 **Business Context:** The engineering team noticed that support chatbot users often ask the same questions. The LLM gateway should cache responses so that repeated or similar questions return instantly, reducing latency from 2 seconds to <10ms and cutting LLM costs by 20-30%.
 
-### Objective
+### Lab 2 Objective
 
-Demonstrate exact-match and semantic cache hits.
+Start from a silent cache failure, detect the staleness, apply one fix, and confirm recovery with latency numbers.
 
-### Steps
+### Lab 2 Fail-First Setup (Intentional Break)
+
+Set the semantic similarity threshold too high so semantic matches silently fall back to full LLM calls — cache looks active but never fires for paraphrased questions.
 
 ```bash
-# 1. Send a request (cache MISS)
-curl -s http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "What is machine learning?"}]
-  }' | jq '{cache_hit, gateway_latency_ms}'
-# → cache_hit: false, gateway_latency_ms: ~1500
-
-# 2. Send IDENTICAL request (cache HIT — exact match)
-curl -s http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "What is machine learning?"}]
-  }' | jq '{cache_hit, gateway_latency_ms}'
-# → cache_hit: true, gateway_latency_ms: ~5
-
-# 3. Send SIMILAR request (cache HIT — semantic match)
-curl -s http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Explain machine learning to me"}]
-  }' | jq '{cache_hit, gateway_latency_ms}'
-# → cache_hit: true (if similarity > 0.92), gateway_latency_ms: ~10
-
-# 4. Send DIFFERENT request (cache MISS)
-curl -s http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "What is quantum computing?"}]
-  }' | jq '{cache_hit, gateway_latency_ms}'
-# → cache_hit: false, gateway_latency_ms: ~1500
-
-# 5. Bypass cache
-curl -s http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "What is machine learning?"}],
-    "bypass_cache": true
-  }' | jq '{cache_hit, gateway_latency_ms}'
-# → cache_hit: false (cache bypassed)
+# In .env, set threshold to near-exact match (breaks semantic hits)
+# CACHE_SIMILARITY_THRESHOLD=0.99
+# Restart: poetry run start
 ```
 
-### Expected Results
+### Lab 2 Failure Signals
 
-| Request | Cache Hit | Latency | 🚚 Courier |
-|---------|-----------|---------|-----------|
-| First "What is machine learning?" | ❌ | ~1500ms | 🚚 The first shipping manifest about machine learning has no match in the pickup locker, so a courier makes the full 1500ms round trip to the provider depot. |
-| Identical repeat | ✅ (exact) | ~5ms | 🚚 The pickup locker finds an exact address match and hands back the cached reply in 5ms, skipping the delivery entirely for a 300× speed-up. |
-| "Explain machine learning to me" | ✅ (semantic) | ~10ms | 🚚 A paraphrased shipping manifest matches the GPS-coordinate warehouse entry closely enough to trigger a semantic cache hit in about 10ms. |
-| "What is quantum computing?" | ❌ | ~1500ms | 🚚 Quantum computing has never been delivered before, so the pickup locker is empty and a courier must make the full 1500ms round trip to fetch the answer. |
-| With `bypass_cache: true` | ❌ (bypassed) | ~1500ms | 🚚 The bypass flag tells the dispatch desk to ignore the pickup locker entirely, forcing a fresh delivery even when a cached reply is already on the shelf. |
+Noisy signals:
 
-### Verify
+- Cache miss rate stays at 100% regardless of repeated similar questions
+- `gateway_latency_ms` stays at ~1500ms even for paraphrased questions
 
-- [ ] Exact match cache hit returns in <10ms
-- [ ] Semantic match works for paraphrased questions
-- [ ] `bypass_cache` forces a fresh LLM call
-- [ ] Cache miss latency is 100-400× slower than cache hit
+Silent signals:
 
-### 🧠 Certification Question
+- `cache_hit: false` in every response but gateway looks healthy
+- LLM cost per session is 3-5× higher than expected with no error visible
+- `GET /api/metrics` shows cache hit rate at 0% — business team notices cost spike before you do
+
+### Lab 2 Run in Swagger UI (Failure Run)
+
+Open Swagger UI → `POST /v1/chat/completions` → Try it out → Execute:
+
+**Request 1 — first question (cache miss expected):**
+
+```json
+{
+  "messages": [{"role": "user", "content": "What is machine learning?"}]
+}
+```
+
+Record: `cache_hit` and `gateway_latency_ms`.
+
+**Request 2 — identical question (should be exact cache hit):**
+
+Same body. Record: `cache_hit` and `gateway_latency_ms`.
+
+**Request 3 — paraphrased question (semantic hit — broken with threshold 0.99):**
+
+```json
+{
+  "messages": [{"role": "user", "content": "Explain machine learning to me"}]
+}
+```
+
+Record: `cache_hit`. With threshold 0.99, this returns `false` (failure).
+
+**Request 4 — bypass cache explicitly:**
+
+```json
+{
+  "messages": [{"role": "user", "content": "What is machine learning?"}],
+  "bypass_cache": true
+}
+```
+
+### Lab 2 Minimal Fix Path
+
+Apply one small fix only:
+
+1. Lower threshold to a workable value: `CACHE_SIMILARITY_THRESHOLD=0.92`
+2. Restart: `poetry run start`
+3. Repeat requests 1–3 above and confirm request 3 now returns `cache_hit: true`
+
+### Lab 2 Before/After Recovery Metrics
+
+| Metric | Before fix (threshold 0.99) | After fix (threshold 0.92) | Target |
+| --- | --- | --- | --- |
+| Exact match cache hit | ✅ (unchanged) | ✅ (unchanged) | `cache_hit: true`, <10ms |
+| Semantic match cache hit | ❌ `cache_hit: false` | ✅ `cache_hit: true` | <15ms |
+| Latency on paraphrase | ~1500ms | ~10ms | 100× improvement |
+| Cache hit rate (metrics endpoint) | 0% | 30–60% typical | Visible in `/api/metrics` |
+
+### Lab 2 Interview Debrief (2-minute answer practice)
+
+1. **Blast radius:** Users paying for LLM calls on every repeated question; cost is 3–5× expected.
+2. **Detection:** Cache hit rate at 0% in `/api/metrics` — cost anomaly caught it before errors appeared.
+3. **Mitigation:** Lowered similarity threshold from 0.99 to 0.92 — one config change.
+4. **Prevention:** Set threshold alert: if cache hit rate < 10% after 100 requests, flag for review.
+5. **Tradeoff:** Lower threshold catches more paraphrases but risks serving stale answers for semantically close but distinct questions. 0.92 is the practical sweet spot for FAQ-style workloads.
+
+### 🧠 Lab 2 Certification Question
 
 **Q: What is the difference between ElastiCache Redis and ElastiCache Memcached, and which would you choose for a semantic cache?**
 A: Redis — supports complex data types (strings, hashes, lists), persistence (AOF), and TTL. Memcached is simpler (key-value only, no persistence). For semantic cache, Redis is the clear choice because we need to store structured data (embeddings + responses) with TTL expiry.
 
-### What you learned
+### Lab 2 What You Learned
 
-Semantic cache saves money and latency by matching paraphrased questions to cached answers. Exact match is instant (~5ms); semantic match embeds then compares (~10ms). Both are 100–400× faster than a fresh LLM call.
+In interview terms: a misconfigured similarity threshold is a silent failure — the system looks healthy but leaks money. You caught it through the metrics endpoint, not through errors, and fixed it with a single config change.
 
-**✅ Skill unlocked:** You can demonstrate cache hits, explain the similarity threshold, and bypass cache when needed.
+**✅ Skill unlocked:** You can explain not only how semantic cache works, but how it fails silently and how you detect and fix threshold misconfiguration.
 
 ---
 
@@ -245,65 +322,104 @@ Semantic cache saves money and latency by matching paraphrased questions to cach
 
 > 🏢 **Business Context:** The API gateway is exposed to internal teams via API keys. Without rate limiting, a misconfigured client could exhaust the AWS Bedrock quota and block other teams. The platform team needs per-key rate limiting with clear 429 responses.
 
-### Objective
+### Lab 3 Objective
 
-Test the rate limiter by exceeding the configured limit.
+Start with rate limiting disabled, observe quota exhaustion, then enable it and confirm the 429 boundary with observable before/after metrics.
 
-### Steps
+### Lab 3 Fail-First Setup (Intentional Break)
+
+Disable rate limiting entirely so no 429 is returned even under rapid fire:
 
 ```bash
-# 1. Set a low rate limit for testing
-# Edit .env: RATE_LIMIT_REQUESTS_PER_MINUTE=5
+# In .env, disable rate limiting
+# RATE_LIMIT_ENABLED=false
+# RATE_LIMIT_REQUESTS_PER_MINUTE=10000
 # Restart: poetry run start
-
-# 2. Send 7 rapid requests
-for i in $(seq 1 7); do
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X POST http://localhost:8100/v1/chat/completions \
-    -H "Content-Type: application/json" \
-    -d '{"messages":[{"role":"user","content":"Count to 3"}]}')
-  echo "Request $i: HTTP $STATUS"
-  sleep 0.5
-done
 ```
 
-### Expected Results
+Now send 10 rapid requests in Swagger UI — all return 200. This is the broken production state that would exhaust Bedrock quotas.
 
+### Lab 3 Failure Signals
+
+Noisy signals:
+
+- External provider quota error appears (e.g. Bedrock ThrottlingException) after burst — too late
+- Other teams start seeing 503/429 from the *provider*, not the gateway
+
+Silent signals:
+
+- Gateway metrics show 0 rate-limit events but Bedrock cost spikes
+- A single misconfigured client consumes the shared quota before anyone detects it
+- No 429 in gateway logs — problem only visible in cloud billing or provider console
+
+### Lab 3 Run in Swagger UI (Failure Run — No Limit)
+
+Open Swagger UI → `POST /v1/chat/completions` → Try it out.
+
+Send 6 rapid requests with this body:
+
+```json
+{
+  "messages": [{"role": "user", "content": "Count to 3"}]
+}
 ```
-Request 1: HTTP 200
-Request 2: HTTP 200
-Request 3: HTTP 200
-Request 4: HTTP 200
-Request 5: HTTP 200
-Request 6: HTTP 429
-Request 7: HTTP 429
+
+Record: all 6 return 200 — no protection in place.
+
+### Lab 3 Minimal Fix Path
+
+Apply one fix only:
+
+1. Set: `RATE_LIMIT_ENABLED=true` and `RATE_LIMIT_REQUESTS_PER_MINUTE=5`
+2. Restart: `poetry run start`
+3. Send 7 requests in Swagger UI, one at a time
+
+### Lab 3 Run in Swagger UI (Recovery Run)
+
+Send the same body 7 times. Record HTTP status for each:
+
+```json
+{
+  "messages": [{"role": "user", "content": "Count to 3"}]
+}
 ```
 
-### Check the 429 Response
+Expected pattern:
 
-```bash
-curl -v http://localhost:8100/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"messages":[{"role":"user","content":"test"}]}' 2>&1 | grep -E "HTTP|Retry-After|rate_limit"
-```
+| Request | Expected status |
+| --- | --- |
+| 1–5 | 200 OK |
+| 6+ | 429 Too Many Requests |
 
-### Verify
+On the 429 response, note the `error.type` field in the response body.
 
-- [ ] First 5 requests return 200
-- [ ] Request 6+ returns 429
-- [ ] 429 response includes `error.type: "rate_limit_error"`
-- [ ] After 60 seconds, requests are allowed again
+### Lab 3 Before/After Recovery Metrics
 
-### 🧠 Certification Question
+| Metric | Before fix (no limit) | After fix (limit = 5/min) | Target |
+| --- | --- | --- | --- |
+| Requests allowed per minute | Unlimited ❌ | 5 ✓ | Hard cap enforced |
+| 429 rate-limit events in logs | 0 | Visible at request 6+ | Gateway owns the error |
+| Provider quota exhaustion risk | High | Mitigated | Gateway absorbs burst |
+| Error type in response | None | `rate_limit_error` ✓ | Client-readable |
+
+### Lab 3 Interview Debrief (2-minute answer practice)
+
+1. **Blast radius:** One misconfigured client exhausts provider quota for all teams before gateway returns any error.
+2. **Detection:** Silent — only visible in provider billing or a ThrottlingException from Bedrock, not in gateway logs.
+3. **Mitigation:** Enable rate limit flag and set per-minute cap — one config change, immediate effect.
+4. **Prevention:** Default-on rate limiting; require explicit override to disable; alert on 0 rate-limit events during load tests.
+5. **Tradeoff:** Fixed-window counter is simple and predictable but can allow 2× burst at window boundaries. Token bucket is smoother but more complex. For learning workloads, fixed-window is fine.
+
+### 🧠 Lab 3 Certification Question
 
 **Q: How does AWS API Gateway handle throttling, and how does it compare to our implementation?**
 A: AWS API Gateway uses a token bucket algorithm with configurable steady-state rate and burst capacity. Our gateway uses a simpler fixed-window counter. AWS API Gateway returns `429 Too Many Requests` with the same pattern. For production, AWS API Gateway can be placed in front of our gateway for additional throttling.
 
-### What you learned
+### Lab 3 What You Learned
 
-Rate limiting protects shared LLM quotas. The 429 response with `rate_limit_error` follows the industry standard. After the window resets, requests flow again.
+In interview terms: rate-limit absence is a silent failure until an external quota breaks. You caught it by simulating the burst, applied a single config fix, and proved the boundary with observable 429 responses.
 
-**✅ Skill unlocked:** You can configure, test, and verify rate-limit behaviour including recovery.
+**✅ Skill unlocked:** You can explain how rate limiting protects shared quotas, what breaks silently without it, and how a token-bucket vs fixed-window tradeoff affects burst behavior.
 
 ---
 
@@ -311,66 +427,107 @@ Rate limiting protects shared LLM quotas. The 429 response with `rate_limit_erro
 
 > 🏢 **Business Context:** The RAG chatbot (Phase 1) needs text embeddings for document search. Instead of each service calling Ollama/Bedrock directly, the gateway provides a unified embedding endpoint with the same caching and rate limiting.
 
-### Objective
+### Lab 4 Objective
 
-Generate embeddings through the gateway and verify the response format.
+Start from an embedding model misconfiguration that returns wrong dimensions, detect it through response shape, apply a single fix, and confirm recovery with a dimensions check.
 
-### Steps
+### Lab 4 Fail-First Setup (Intentional Break)
+
+Change the embedding model to a non-existent or wrong model name so the gateway either errors or returns unexpected dimensions:
 
 ```bash
-# 1. Generate an embedding
-curl -s http://localhost:8100/v1/embeddings \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input": "Machine learning is a subset of artificial intelligence."
-  }' | jq '{model, "dimensions": (.data[0].embedding | length), "first_5": (.data[0].embedding[:5])}'
-
-# 2. Generate multiple embeddings
-curl -s http://localhost:8100/v1/embeddings \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input": ["Hello world", "Machine learning", "Cloud computing"]
-  }' | jq '.data | length'
-# → 3
-
-# 3. Check the models endpoint
-curl -s http://localhost:8100/v1/models | jq '.data[] | select(.model_type == "embedding")'
+# In .env, set a wrong embedding model
+# EMBEDDING_MODEL=nomic-embed-text-wrong
+# Restart: poetry run start
 ```
 
-### Expected Results
+### Lab 4 Failure Signals
+
+Noisy signals:
+
+- Embedding request returns 500 or provider error
+- Downstream RAG retrieval returns no results (vectors from wrong model are incompatible with stored index)
+
+Silent signals:
+
+- Embedding returns a response but dimensions are wrong (e.g. 384 instead of 768)
+- RAG search still runs but retrieval quality drops silently — no errors, just wrong answers
+- `GET /v1/models` shows the wrong model name registered — catch it before queries run
+
+### Lab 4 Run in Swagger UI (Failure Run)
+
+Open Swagger UI → `POST /v1/embeddings` → Try it out → Execute:
+
+```json
+{
+  "input": "Machine learning is a subset of artificial intelligence."
+}
+```
+
+Record: error response OR note the `dimensions` value in the response. If dimensions ≠ 768, you have a silent mismatch.
+
+Also check: Swagger UI → `GET /v1/models` → Execute. Record which embedding model is listed.
+
+### Lab 4 Minimal Fix Path
+
+Apply one fix only:
+
+1. Restore correct model: `EMBEDDING_MODEL=nomic-embed-text`
+2. Restart: `poetry run start`
+3. Re-run the Swagger embedding request
+
+### Lab 4 Run in Swagger UI (Recovery Run)
+
+`POST /v1/embeddings` with same body. Then `GET /v1/models`.
+
+Expected recovery response:
 
 ```json
 {
   "model": "ollama/nomic-embed-text",
-  "dimensions": 768,
-  "first_5": [0.0234, -0.0891, 0.0156, -0.0432, 0.0671]
+  "data": [
+    {
+      "embedding": [0.0234, -0.0891, 0.0156, "...(768 total)"],
+      "index": 0
+    }
+  ]
 }
 ```
 
-### Verify
+### Lab 4 Before/After Recovery Metrics
 
-- [ ] Embedding dimensions are 768 (nomic-embed-text)
-- [ ] Multiple inputs return multiple embedding objects
-- [ ] Response matches OpenAI embedding format
-- [ ] Models endpoint lists the embedding model
+| Metric | Before fix (wrong model) | After fix (correct model) | Target |
+| --- | --- | --- | --- |
+| Embedding dimensions | Wrong (e.g. 384) or error | 768 ✓ | Matches index schema |
+| RAG retrieval quality | Silent degradation or 0 results | Correct results ✓ | Recall measurable |
+| Model in `/v1/models` response | Wrong name ❌ | `nomic-embed-text` ✓ | Config matches registry |
+| Gateway error rate | 500 or silent wrong dims | 0 errors ✓ | Clean response |
 
-### 🧠 Certification Question
+### Lab 4 Interview Debrief (2-minute answer practice)
+
+1. **Blast radius:** All downstream RAG retrieval silently returns wrong or empty results — no 500, just bad answers.
+2. **Detection:** Check `dimensions` in embedding response; check `/v1/models` to verify model registry matches expected config.
+3. **Mitigation:** Fix model name in config — one change, immediate fix on restart.
+4. **Prevention:** Startup assertion: if embedding dimensions ≠ expected, refuse to start. Alert on retrieval recall drop < threshold.
+5. **Tradeoff:** 768-dim (nomic) vs 1024-dim (Titan v2). Larger dims = better recall, higher storage cost. At 1M docs: 768-dim ≈ 3GB, 1024-dim ≈ 4GB. Choose smallest that hits your recall target.
+
+### 🧠 Lab 4 Certification Question
 
 **Q: What AWS service provides text embeddings, and how do embedding dimensions affect storage costs?**
 A: Amazon Bedrock with Titan Embed V2 provides 1024-dim embeddings. Dimensions directly impact storage: 768 floats × 4 bytes = 3KB per vector. At 1M documents, that's ~3GB for 768-dim vs ~4GB for 1024-dim. Choose the smallest dimension that maintains retrieval quality.
 
-### What you learned
+### Lab 4 What You Learned
 
-Embeddings are the bridge between text and vector search. The gateway unifies embedding access the same way it unifies chat — one endpoint, any provider.
+In interview terms: wrong embedding dimensions are a silent failure — the system runs but downstream retrieval degrades invisibly. You detected it through response shape inspection, fixed it with one config change, and proved recovery through dimensions match and model registry check.
 
-**✅ Skill unlocked:** You can generate embeddings, check dimensions, and explain storage cost implications.
+**✅ Skill unlocked:** You can explain embedding dimensions, detect model mismatches silently degrading retrieval quality, and articulate the storage cost tradeoff between dimension sizes.
 
 ---
 
 ## Summary
 
 | Lab | Component | Key Learning | 🚚 Courier |
-|-----|-----------|-------------|-----------|
+| --- | --- | --- | --- |
 | 1 | LLM Router | OpenAI-compatible API, provider abstraction | 🚚 The dispatch desk accepts any shipping manifest in OpenAI format and routes it to whichever provider depot the config points at, hiding the swap from clients. |
 | 2 | Semantic Cache | Exact + semantic matching, latency reduction | 🚚 The pickup locker shelf saves repeated deliveries by returning pre-written replies for exact or GPS-coordinate-close queries, cutting latency from 1500ms to 5ms. |
 | 3 | Rate Limiter | Fixed-window counters, 429 handling | 🚚 The depot gate counts each courier's knocks per minute and slams shut with a 429 quota-used-up error when the fixed-window daily dispatch quota is exceeded. |
@@ -379,7 +536,7 @@ Embeddings are the bridge between text and vector search. The gateway unifies em
 ## Phase 1 Labs — Skills Checklist
 
 | # | Skill | Lab | Can you explain it? | 🚚 Courier |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | OpenAI-compatible gateway request flow | Lab 1 | [ ] Yes | 🚚 The gateway's front door accepts OpenAI-format shipping manifests and routes them to any courier regardless of which provider depot the courier actually works for. |
 | 2 | Exact and semantic cache behavior | Lab 2 | [ ] Yes | 🚚 The pickup locker returns pre-written replies for identical or GPS-coordinate-close queries, saving the delivery and shrinking the expense ledger. |
 | 3 | Rate-limit enforcement and error handling | Lab 3 | [ ] Yes | 🚚 The depot gate enforces a daily dispatch quota per API key, returning a 429 quota-used-up error when a courier exceeds their per-minute allowance. |

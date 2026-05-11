@@ -46,6 +46,7 @@
 
 | Document | Description |
 |---|---|
+| [API Reference](docs/reference/api-reference.md) | Every endpoint, request/response payloads, examples |
 | [Testing Strategy & Inventory](docs/ai-engineering/testing.md) | All tests — unit, integration, E2E |
 | [Pydantic Models](docs/reference/pydantic-models.md) | Every model explained — every field, why it exists |
 
@@ -197,7 +198,7 @@ cp .env.example .env
 ./scripts/run_cloud_labs.sh --provider aws --email you@example.com --cost-limit 15
 ```
 
-Results saved to `scripts/lab_results/<aws|azure>/`.
+Results saved to `scripts/lab_results/<aws|azure>/<timestamp>/`.
 
 See [Getting Started](docs/setup-and-tooling/getting-started.md) for the full step-by-step guide.
 
